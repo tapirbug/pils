@@ -24,3 +24,6 @@ docs/
 *.lst
 /build
 /dub.selections.json
+
+# OS Index Files
+.DS_Store
