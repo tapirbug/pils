@@ -1,6 +1,9 @@
 module pils.config;
 
-import std.format;
+private
+{
+    import std.format;
+}
 
 enum pilsVersionMajor = 0;
 enum pilsVersionMinor = 0;
