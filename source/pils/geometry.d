@@ -11,6 +11,7 @@ private
     import std.algorithm.iteration;
     import std.algorithm.mutation : swap;
     import std.algorithm.sorting : sort;
+    import std.algorithm.searching;
     import std.conv : to;
     import std.typecons : tuple, Nullable;
     import std.math;
@@ -45,7 +46,12 @@ struct Edge
 }
 
 /++
- + Represents a polygon in 2D space.
+ + Represents a polygon in 2D space with one or more contours.
+ +
+ + Note that the outermost contour must be counter-clockwise. Holes have
+ + opposite winding order, which means a hole has clockwise winding order. If
+ + that hole has in turn a hole, it will have counter-clockwise winding order
+ + again.
  +/
 struct Face
 {
@@ -247,6 +253,63 @@ struct Face
     }
 
     /++
+     + Obtains a range that yields the internal angle of each vertex in the
+     + face.
+     +/
+    @property auto interiorAngles()
+    {
+        return incidentEdges.map!((incidents) {
+            Edge before = incidents[0];
+            Edge after = incidents[1];
+
+            return angleBetween(after.end, after.start, before.start);
+        })();
+    }
+
+    unittest
+    {
+        Face tri = Face.tri(
+            vec2d(0.0, 0.0),
+            vec2d(10.0, 0.0),
+            vec2d(0.0, 10.0)
+        );
+
+        // All angles should amount to 180°
+        assert(almost_equal(sum(tri.interiorAngles), PI));
+
+        assert(almost_equal(tri.interiorAngles[0], 0.5*PI));
+        assert(almost_equal(tri.interiorAngles[1], 0.25*PI));
+        assert(almost_equal(tri.interiorAngles[2], 0.25*PI));
+    }
+
+    /++
+     + Obtains a range that yields the external angle of each vertex in the
+     + face.
+     +/
+    @property auto exteriorAngles()
+    {
+        return incidentEdges.map!((incidents) {
+            Edge before = incidents[0];
+            Edge after = incidents[1];
+
+            return angleBetween(before.start, before.end, after.end);
+        })();
+    }
+
+    unittest
+    {
+        Face tri = Face.tri(
+            vec2d(0.0, 0.0),
+            vec2d(10.0, 0.0),
+            vec2d(0.0, 10.0)
+        );
+
+        assert(almost_equal(tri.exteriorAngles[0], 1.5*PI));
+        assert(almost_equal(tri.exteriorAngles[1], 1.75*PI));
+        assert(almost_equal(tri.exteriorAngles[2], 1.75*PI));
+    }
+
+    /++
      + Returns an array of points where each three consecutive points form one
      + triangle of the face in model space. All triangles together occupy the
      + exact same area as the original polygon.
@@ -273,6 +336,38 @@ struct Face
     {
         return BooleanOperationEvaluator().subtract(this, other);
     }
+}
+
+/++
+ + Calculates the angle between two lines both starting in middle. One line will
+ + extend to start and one line will extend to end.
+ +
+ + The resulting angle indicates how much the first line needs to be
+ + counter-clockwise rotated to have the same slope as the second line.
+ + The returned angle is guaranteed to be greater than or equal to zero and
+ + smaller than or equal to 2π.
+ +/
+real angleBetween(vec2d start, vec2d middle, vec2d end)
+{
+    vec2d out1 = (start - middle).normalized;
+    vec2d out2 = (end - middle).normalized;
+
+    real angle = atan2(out2.y, out2.x) - atan2(out1.y, out1.x);
+    return (angle < 0) ? (2*PI + angle) : angle;
+}
+
+unittest
+{
+    vec2d up = vec2d(0.0, 10.0);
+    vec2d origin = vec2d(0.0, 0.0);
+    vec2d right = vec2d(4.0, 0.0);
+    vec2d left = vec2d(-1.0, 0.0);
+    vec2d leftDown = vec2d(-1.0, -1.0);
+
+    assert(almost_equal(angleBetween(up, origin, right), 1.5*PI));
+    assert(almost_equal(angleBetween(right, origin, up), 0.5*PI));
+    assert(almost_equal(angleBetween(leftDown, origin, left), 1.75*PI));
+    assert(almost_equal(angleBetween(left, origin, leftDown), 0.25*PI));
 }
 
 enum Parallelity
@@ -374,24 +469,24 @@ vec2d[] intersect(Edge edge1, Edge edge2)
         for(size_t i1 = 0; i1 < points.length && outerIdx == -1; ++i1)
         {
             Nullable!(real, real.max) lastDotProduct;
-            bool allSame = true;
+            bool allSameDirection = true;
 
-            for(size_t i2 = 0; i2 < points.length && allSame; ++i2)
+            for(size_t i2 = 0; i2 < points.length && allSameDirection; ++i2)
             {
-                if(i1 != i2)
+                if(i1 != i2 && points[i1] != points[i2])
                 {
                     real dotProduct = dot(points[i1], points[i2]);
 
                     if(!lastDotProduct.isNull() && !almost_equal(dotProduct, lastDotProduct.get()))
                     {
-                        allSame = false;
+                        allSameDirection = false;
                     }
 
                     lastDotProduct = dotProduct;
                 }
             }
 
-            if(allSame)
+            if(allSameDirection)
             {
                 outerIdx = i1;
             }
@@ -419,10 +514,10 @@ vec2d[] intersect(Edge edge1, Edge edge2)
     {
         case Parallelity.none:
             // lines are neither parallel, antiparallel or colinear, they have
-            // one intersection point.
+            // zero or one intersection point.
 
             auto intersection = intersectNonParallelSegments(edge1, edge2);
-            if(intersection)
+            if(!intersection.isNull())
             {
                 intersections ~= intersection;
             }
@@ -444,14 +539,19 @@ vec2d[] intersect(Edge edge1, Edge edge2)
             {
                 // lines are colinear and may share a common line segment
                 // If they do share a line segment, they will have two intersection
-                // points, otherwise zero.
+                // points, otherwise zero or one.
 
                 auto points = [ edge1.start, edge1.end, edge2.start, edge2.end ];
 
                 // the two points in the middle are the intersections
-                intersections = sortDirectionally(points);
-                intersections = intersections[1..$-1];
+                intersections = sortDirectionally(points)[1..$-1];
 
+                if(almost_equal(intersections[0], intersections[1], 0.0001))
+                {
+                    // If lines touch by very very little, only one intersection
+                    // is returned
+                    intersections = intersections[1..$];
+                }
             }
             break;
     }
@@ -461,6 +561,11 @@ vec2d[] intersect(Edge edge1, Edge edge2)
 
 unittest
 {
+    assert(intersect(
+        Edge(vec2d(0.0, 1.0), vec2d(0.0, 0.0)),
+        Edge(vec2d(0.6, 1.0), vec2d(0.4, 0.0))
+    ).empty);
+
     assert(intersect(
         Edge(vec2d(0.0, 2.0), vec2d(2.0, 0.0)),
         Edge(vec2d(0.0, 0.0), vec2d(2.0, 2.0))
@@ -494,6 +599,33 @@ unittest
         Edge(vec2d(1.0, 1.0), vec2d(10.0, 1.0)),
         Edge(vec2d(1.0, 0.0), vec2d(10.0, 0.0))
     ).empty);
+
+    // If lines touch but by very very little, only one intersection
+    assert(intersect(
+        Edge(vec2d(0.0, 0.0), vec2d(5.0, 0.0)),
+        Edge(vec2d(5.0, 0.0), vec2d(10.0, 0.0))
+    ) == [
+        vec2d(5.0, 0.0)
+    ]);
+
+    // If lines are identical, returns the common start and end points
+    assert(intersect(
+        Edge(vec2d(0.0, 0.0), vec2d(5.0, 0.0)),
+        Edge(vec2d(0.0, 0.0), vec2d(5.0, 0.0))
+    ) == [
+        vec2d(0.0, 0.0),
+        vec2d(5.0, 0.0)
+    ]);
+
+    // If edge1.start == edge2.end && edge1.end == edge2.start
+    // then the result should be the same
+    assert(intersect(
+        Edge(vec2d(1.0, 0.0), vec2d(0.0, 1.0)),
+        Edge(vec2d(0.0, 1.0), vec2d(1.0, 0.0))
+    ) == [
+        vec2d(1.0, 0.0),
+        vec2d(0.0, 1.0)
+    ]);
 }
 
 /++
@@ -516,6 +648,71 @@ vec2d nearest(Edge edge, vec2d point)
     t = clamp(t, 0.0, 1.0);
 
     return edge.start + t*start2End;
+}
+
+enum Neighborhood
+{
+    /++
+     + The point is an element of the line and neither left nor right of it.
+     +/
+    none,
+    /++
+     + The point is in the left neighborhood of the line.
+     +/
+    left,
+    /++
+     + The point is in the right neighborhood of the line.
+     +/
+    right
+}
+
+/++
+ +
+ + See_Also: http://stackoverflow.com/a/1560510
+ +/
+Neighborhood findNeighborhood(Edge edge, vec2d point)
+{
+    auto sign = sgn((edge.end.x - edge.start.x) * (point.y - edge.start.y) -
+                    (edge.end.y - edge.start.y) * (point.x - edge.start.x));
+
+    if(sign == -1)
+    {
+        return Neighborhood.right;
+    }
+    else if(sign == 1)
+    {
+        return Neighborhood.left;
+    }
+    else
+    {
+        assert(sign == 0);
+        return Neighborhood.none;
+    }
+}
+
+unittest
+{
+    Edge xAxis = Edge(vec2d(0.0, 0.0), vec2d(10.0, 0.0));
+
+    assert(findNeighborhood(xAxis, vec2d(0.5, 0.0)) == Neighborhood.none);
+    assert(findNeighborhood(xAxis, vec2d(100.5, 0.0)) == Neighborhood.none);
+    assert(findNeighborhood(xAxis, vec2d(1.5, 1.0)) == Neighborhood.left);
+    assert(findNeighborhood(xAxis, vec2d(1.5, -1.0)) == Neighborhood.right);
+}
+
+bool isLeftNeighborhood(Edge edge, vec2d point)
+{
+    return findNeighborhood(edge, point) == Neighborhood.left;
+}
+
+bool isRightNeighborhood(Edge edge, vec2d point)
+{
+    return findNeighborhood(edge, point) == Neighborhood.right;
+}
+
+bool isInnerNeighborhood(Edge edge1, Edge edge2, vec2d point)
+{
+    return false;
 }
 
 // Does not clamp to start and end of edge (line instead of line segment)
@@ -550,6 +747,118 @@ private:
 
 struct BooleanOperationEvaluator
 {
+    class CrossVertexDescriptor
+    {
+        CrossVertex vertex;
+        bool isPrevious;
+
+        this(CrossVertex vertex, bool isPrevious)
+        {
+            this.vertex = vertex;
+            this.isPrevious = isPrevious;
+        }
+
+        @property bool isNext() { return !isPrevious; }
+    }
+
+    class CrossVertex
+    {
+        vec2d position;
+        CrossVertexDescriptor previousEdgeDescriptor;
+        CrossVertexDescriptor nextEdgeDescriptor;
+
+        this(Edge previousEdge, Edge nextEdge)
+        {
+            previousEdgeDescriptor = new CrossVertexDescriptor(this, true);
+            previousEdgeDescriptor = new CrossVertexDescriptor(this, false);
+        }
+    }
+
+    CrossVertex[] processEdgeIntersections(ref Face faceA, ref Face faceB)
+    {
+        CrossVertex[] crossVertices;
+
+        /++ Maps +/
+        vec2d[size_t] vertexInsertions;
+
+        void insertVerticesAfter(ref Face face, size_t afterIdx, vec2d[] vertices)
+        {
+            foreach(vertex; vertices)
+            {
+                if(!face.vertices.canFind(vertex))
+                {
+                    face.vertices.insertInPlace(afterIdx+1, vertex);
+                }
+            }
+        }
+
+        // Iterate with index over edges in forward direction but inversed order
+        // so the idx can be used directly as insertion point without bringing
+        // the vertices out of order
+        foreach(edgeAStartIdx, Edge edgeA; faceA.edges.enumerate().retro())
+        {
+            foreach(edgeBStartIdx, Edge edgeB; faceB.edges.enumerate().retro())
+            {
+                vec2d[] intersections = intersect(edgeA, edgeB);
+
+                /*if(intersections.length == 2)
+                {
+                    vec2d vertexAfter = faceA.vertices[(edgeAStartIdx+1) % faceA.vertices.length];
+                    if((vertexAfter - intersections[0]).magnitude_squared <
+                       (vertexAfter - intersections[1]).magnitude_squared)
+                    {
+                        swap(intersections[0], intersections[1]);
+                    }
+                }*/
+
+                insertVerticesAfter(faceA, edgeAStartIdx, intersections);
+
+                /*if(intersections.length == 2)
+                {
+                    vec2d vertexAfter = faceB.vertices[(edgeBStartIdx+1) % faceB.vertices.length];
+                    if((vertexAfter - intersections[0]).magnitude_squared <
+                       (vertexAfter - intersections[1]).magnitude_squared)
+                    {
+                        swap(intersections[0], intersections[1]);
+                    }
+                }*/
+                insertVerticesAfter(faceB, edgeBStartIdx, intersections);
+
+                foreach(intersection; intersections)
+                {
+                    /*auto crossVertex = new CrossVertex(edgeA, edgeB);
+
+                    crossVertices ~= CrossVertex(intersection);*/
+                }
+            }
+        }
+
+        return crossVertices;
+    }
+
+    unittest
+    {
+        import std.stdio;
+
+        Face tri = Face.tri(
+            vec2d(0.0, 0.0),
+            vec2d(1.0, 0.0),
+            vec2d(0.0, 1.0)
+        );
+
+        Face quad = Face.quad(
+            vec2d(0.4, -1.0),
+            vec2d(0.6, -1.0),
+            vec2d(0.6, 1.0),
+            vec2d(0.4, 1.0)
+        );
+
+        auto evaluator = BooleanOperationEvaluator();
+        evaluator.processEdgeIntersections(tri, quad);
+
+        writeln(tri);
+        writeln(quad);
+    }
 
     /++
      + Returns a new face that contains only the regions of the first face
@@ -563,6 +872,7 @@ struct BooleanOperationEvaluator
      +/
     Face subtract(Face subtrahend, Face minuend)
     {
+        processEdgeIntersections(subtrahend, minuend);
 
         return Face();
     }
