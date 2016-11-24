@@ -9,7 +9,12 @@ private
 {
     import std.range;
     import std.algorithm.iteration;
+    import std.algorithm.mutation : swap;
+    import std.algorithm.sorting : sort;
     import std.conv : to;
+    import std.typecons : tuple, Nullable;
+    import std.math;
+    import gl3n.math : almost_equal, clamp;
 }
 
 struct Polygon
@@ -28,6 +33,15 @@ struct Edge
 {
     vec2d start;
     vec2d end;
+
+    /++
+     + Returns the direction of the edge as a directional vector. Note that the
+     + returned vector is not normalized.
+     +/
+    @property vec2d direction()
+    {
+        return end - start;
+    }
 }
 
 /++
@@ -164,14 +178,15 @@ struct Face
      + Starting at the edge from the first vertex to the second and ending with
      + the edge from the last vertex to the first.
      +/
-    @property auto edges() {
+    @property auto edges()
+    {
         // Contains vertices but with the first vertex removed and added at the end
         auto nextVertices = vertices.cycle()
-                                    .take(vertices.length + 1)
-                                    .dropOne();
+                                    .dropOne()
+                                    .take(vertices.length);
 
         return zip(vertices, nextVertices)
-               .map!((pair) => Edge(pair[0], pair[1]))();
+                .map!((pair) => Edge(pair[0], pair[1]))();
     }
 
     unittest
@@ -193,6 +208,42 @@ struct Face
         ]);
 
         assert(edges == [ triangle.edges[0], triangle.edges[1], triangle.edges[2] ]);
+    }
+
+    @property auto incidentEdges()
+    {
+        auto previousVertices = vertices.cycle()
+                                        .drop(vertices.length - 1)
+                                        .take(vertices.length);
+
+        auto nextVertices = vertices.cycle()
+                                    .dropOne()
+                                    .take(vertices.length);
+
+        return zip(
+            zip(previousVertices, vertices).map!((pair) => Edge(pair[0], pair[1]))(),
+            zip(vertices, nextVertices).map!((pair) => Edge(pair[0], pair[1]))()
+        );
+    }
+
+    unittest
+    {
+        Face triangle = Face.tri(vec2d(-1.0, -1.0), vec2d(1.0, -1.0), vec2d(0.0, 1.0));
+
+        assert(tuple(
+            Edge(vec2d(0.0, 1.0), vec2d(-1.0, -1.0)),
+            Edge(vec2d(-1.0, -1.0), vec2d(1.0, -1.0))
+        ) == triangle.incidentEdges[0]);
+
+        assert(tuple(
+            Edge(vec2d(-1.0, -1.0), vec2d(1.0, -1.0)),
+            Edge(vec2d(1.0, -1.0), vec2d(0.0, 1.0))
+        ) == triangle.incidentEdges[1]);
+
+        assert(tuple(
+            Edge(vec2d(1.0, -1.0), vec2d(0.0, 1.0)),
+            Edge(vec2d(0.0, 1.0), vec2d(-1.0, -1.0))
+        ) == triangle.incidentEdges[2]);
     }
 
     /++
@@ -220,28 +271,302 @@ struct Face
      +/
     Face subtract(Face other)
     {
-        assert(false);
+        return BooleanOperationEvaluator().subtract(this, other);
+    }
+}
+
+enum Parallelity
+{
+    /++ Neither Parallel nor antiparallel +/
+    none,
+    /++ Parallel or near parallel +/
+    parallel,
+    /++ Antiparallel or near antiparallel +/
+    antiparallel
+}
+
+/++
+ + Checks whether two vectors are parallel, antiparallel or not at all parallel.
+ + Note that due to floating point imprecisions vectors are treated as parallel
+ + once they are close enough to being near parallel.
+ +/
+Parallelity parallelity(vec2d v1, vec2d v2)
+{
+    v1.normalize();
+    v2.normalize();
+
+    if(almost_equal(v1, v2))
+    {
+        return Parallelity.parallel;
+    }
+    else if(almost_equal(v1, -v2))
+    {
+        return Parallelity.antiparallel;
+    }
+    else
+    {
+        return Parallelity.none;
+    }
+}
+
+unittest
+{
+    assert(parallelity(vec2d(5.0, 5.0), vec2d(1.0, 1.0)) == Parallelity.parallel);
+    assert(parallelity(vec2d(5.0, 5.0), vec2d(-1.0, -1.0)) == Parallelity.antiparallel);
+    assert(parallelity(vec2d(1.0, 0.0), vec2d(0.0, -1.0)) == Parallelity.none);
+}
+
+/++
+ + Checks whether the given edges are near parallel, near antiparallel or not at
+ + all parallel.
+ +/
+Parallelity parallelity(Edge edge1, Edge edge2)
+{
+    return parallelity(edge1.direction, edge2.direction);
+}
+
+/++
+ + Returns the intersection points of two edges.
+ +
+ + If the two edges to not intersect, an empty array is returned.
+ +
+ + If they do intersect, returns one intersection point.
+ +
+ + If the two edges share a common line segment, the start and end of that
+ + segment are returned as intersection points.
+ +/
+vec2d[] intersect(Edge edge1, Edge edge2)
+{
+    void solveParameters(Edge edge1, Edge edge2, out real t, out real s)
+    {
+        vec2d edge1Direction = edge1.direction;
+        vec2d edge2Direction = edge2.direction;
+
+        t = ( edge2Direction.x * (edge1.start.y - edge2.start.y) - edge2Direction.y * (edge1.start.x - edge2.start.x)) / (-edge2Direction.x * edge1Direction.y + edge1Direction.x * edge2Direction.y);
+        s = (-edge1Direction.y * (edge1.start.x - edge2.start.x) + edge1Direction.x * (edge1.start.y - edge2.start.y)) / (-edge2Direction.x * edge1Direction.y + edge1Direction.x * edge2Direction.y);
     }
 
-    Face add(Face other)
+    Nullable!vec2d intersectNonParallelSegments(Edge edge1, Edge edge2)
     {
-        assert(false);
+        Nullable!vec2d intersection;
+        real s, t;
+
+        solveParameters(edge1, edge2, t, s);
+
+        if(t >= 0 && t <= 1 && s >= 0 && s <= 1)
+        {
+            intersection = edge1.start + t * edge1.direction;
+        }
+
+        return intersection;
     }
 
-    @property real area()
+    vec2d intersectNonParallelLines(Edge edge1, Edge edge2)
     {
-        assert(false);
+        real s, t;
+        solveParameters(edge1, edge2, t, s);
+        return edge1.start + t * edge1.direction;
     }
 
-    /*@property bool isConvex()
-    {
+    vec2d[] sortDirectionally(vec2d[] points) {
+        size_t outerIdx = -1;
 
+        for(size_t i1 = 0; i1 < points.length && outerIdx == -1; ++i1)
+        {
+            Nullable!(real, real.max) lastDotProduct;
+            bool allSame = true;
+
+            for(size_t i2 = 0; i2 < points.length && allSame; ++i2)
+            {
+                if(i1 != i2)
+                {
+                    real dotProduct = dot(points[i1], points[i2]);
+
+                    if(!lastDotProduct.isNull() && !almost_equal(dotProduct, lastDotProduct.get()))
+                    {
+                        allSame = false;
+                    }
+
+                    lastDotProduct = dotProduct;
+                }
+            }
+
+            if(allSame)
+            {
+                outerIdx = i1;
+            }
+        }
+
+        assert(outerIdx != -1);
+        vec2d outerPoint = points[outerIdx];
+
+        bool hasFirstLessDistanceToOuter(vec2d p1, vec2d p2)
+        {
+            return (outerPoint - p1).magnitude_squared <
+                   (outerPoint - p2).magnitude_squared;
+        }
+
+        auto sorted = sort!(hasFirstLessDistanceToOuter)(points)[0..$];
+
+        return array(sorted);
     }
 
-    @property bool isConcave()
+    vec2d[] intersections;
+
+    auto edgeParalellity = parallelity(edge1, edge2);
+
+    final switch(edgeParalellity)
+    {
+        case Parallelity.none:
+            // lines are neither parallel, antiparallel or colinear, they have
+            // one intersection point.
+
+            auto intersection = intersectNonParallelSegments(edge1, edge2);
+            if(intersection)
+            {
+                intersections ~= intersection;
+            }
+
+            break;
+
+        case Parallelity.parallel:
+        case Parallelity.antiparallel:
+            // flip coordinates
+            vec2d edge1OrthogonalDirection = edge1.direction.yx;
+            edge1OrthogonalDirection.y = -edge1OrthogonalDirection.y;
+            Edge edge1Orthogonal = Edge(edge1.start - edge1OrthogonalDirection,
+                                        edge1.start + edge1OrthogonalDirection);
+
+            auto edge1OrthogonalIntersection = intersectNonParallelLines(edge1, edge1Orthogonal);
+            auto edge2OrthogonalIntersection = intersectNonParallelLines(edge2, edge1Orthogonal);
+
+            if(almost_equal(edge1OrthogonalIntersection, edge2OrthogonalIntersection))
+            {
+                // lines are colinear and may share a common line segment
+                // If they do share a line segment, they will have two intersection
+                // points, otherwise zero.
+
+                auto points = [ edge1.start, edge1.end, edge2.start, edge2.end ];
+
+                // the two points in the middle are the intersections
+                intersections = sortDirectionally(points);
+                intersections = intersections[1..$-1];
+
+            }
+            break;
+    }
+
+    return intersections;
+}
+
+unittest
+{
+    assert(intersect(
+        Edge(vec2d(0.0, 2.0), vec2d(2.0, 0.0)),
+        Edge(vec2d(0.0, 0.0), vec2d(2.0, 2.0))
+    ) == [ vec2d(1.0, 1.0) ]);
+
+    assert(intersect(
+        Edge(vec2d(0.0, 0.0), vec2d(2.0, 2.0)),
+        Edge(vec2d(1.0, 1.0), vec2d(3.0, 3.0))
+    ) == [
+        vec2d(1.0, 1.0),
+        vec2d(2.0, 2.0)
+    ]);
+
+    assert(intersect(
+        Edge(vec2d(2.0, 2.0), vec2d(0.0, 0.0)),
+        Edge(vec2d(1.0, 1.0), vec2d(3.0, 3.0))
+    ) == [
+        vec2d(1.0, 1.0),
+        vec2d(2.0, 2.0)
+    ]);
+
+    assert(intersect(
+        Edge(vec2d(1.0, 1.0), vec2d(3.0, 3.0)),
+        Edge(vec2d(0.0, 0.0), vec2d(2.0, 2.0))
+    ) == [
+        vec2d(1.0, 1.0),
+        vec2d(2.0, 2.0)
+    ]);
+
+    assert(intersect(
+        Edge(vec2d(1.0, 1.0), vec2d(10.0, 1.0)),
+        Edge(vec2d(1.0, 0.0), vec2d(10.0, 0.0))
+    ).empty);
+}
+
+/++
+ + Find the point on edge that is nearest to the given point.
+ +
+ + Params:
+ +        edge  = The edge on which to find the nearest point
+ +        point = The point from which to search for nearest point on edge
+ +/
+vec2d nearest(Edge edge, vec2d point)
+{
+    vec2d start2Point = point - edge.start;
+    vec2d start2End   = edge.end - edge.start;
+
+    auto start2EndSqrMag = start2End.length_squared;
+
+    auto directionsDotProd = dot(start2Point, start2End);
+
+    auto t = directionsDotProd / start2EndSqrMag;
+    t = clamp(t, 0.0, 1.0);
+
+    return edge.start + t*start2End;
+}
+
+// Does not clamp to start and end of edge (line instead of line segment)
+vec2d nearestOnLine(Edge edge, vec2d point)
+{
+    vec2d start2Point = point - edge.start;
+    vec2d start2End   = edge.end - edge.start;
+
+    auto start2EndSqrMag = start2End.length_squared;
+
+    auto directionsDotProd = dot(start2Point, start2End);
+
+    auto t = directionsDotProd / start2EndSqrMag;
+
+    return edge.start + t*start2End;
+}
+
+unittest
+{
+    Edge edge = Edge(vec2d(0.0, 0.0), vec2d(10.0, 10.0));
+
+    vec2d before = vec2d(-10.0, -12.0);
+    vec2d middle = vec2d(5.0, 5.0) + vec2d(-1.0, 1.0);
+    vec2d after = vec2d(10.0, 12.0);
+
+    assert(almost_equal(nearest(edge, before), edge.start));
+    assert(almost_equal(nearest(edge, middle), vec2d(5.0, 5.0)));
+    assert(almost_equal(nearest(edge, after),  edge.end));
+}
+
+private:
+
+struct BooleanOperationEvaluator
+{
+
+    /++
+     + Returns a new face that contains only the regions of the first face
+     + that are not also contained in the second face.
+     +
+     + Params:
+     +      subtrahend = The face for which to return only the regions not also
+     +                   occuppied by minuend
+     +      minuend    = Indicates the regions not to include in the returned
+     +                   face
+     +/
+    Face subtract(Face subtrahend, Face minuend)
     {
 
-    }*/
+        return Face();
+    }
+
 }
 
 unittest
