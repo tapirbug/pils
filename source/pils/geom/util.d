@@ -1,4 +1,4 @@
-module pils.geom.utils;
+module pils.geom.util;
 
 public
 {

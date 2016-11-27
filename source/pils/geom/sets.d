@@ -7,7 +7,7 @@ public
 
 private
 {
-    import pils.geom.utils;
+    import pils.geom.util;
     import pils.geom.tesselate : gpcPolygon;
     import deimos.gpc;
     import std.algorithm : map;
