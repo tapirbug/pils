@@ -1,9 +1,8 @@
-module pils.element;
+module pils.entity;
 
 public
 {
-    import gl3n.linalg;
-    import pils.quat4d;
+    import pils.geom.typecons;
 }
 
 private
@@ -11,24 +10,34 @@ private
     import painlessjson;
 }
 
-class Element
+class Entity
 {
 public:
     string className;
+    string groundTag;
     string model;
     @SerializeIgnore vec3d position;
     @SerializeIgnore vec3d scale;
-    @SerializeIgnore quat4d orientation;
+    @SerializeIgnore quatd orientation;
+
+    this(string className, string model, vec3d position, vec3d scale, quatd orientation)
+    {
+        this.className = className;
+        this.model = model;
+        this.position = position;
+        this.scale = scale;
+        this.orientation = orientation;
+    }
 
     @SerializedName("position")
-    @property const double[3] positionArray() { return position.vector; }
+    @property const double[3] positionArray() { return position.v; }
     @SerializedName("position")
-    @property void positionArray(double[3] newPos) { position.vector = newPos; }
+    @property void positionArray(double[3] newPos) { position.v = newPos; }
 
     @SerializedName("scale")
-    @property const double[3] scaleArray() { return scale.vector; }
+    @property const double[3] scaleArray() { return scale.v; }
     @SerializedName("scale")
-    @property void scaleArray(double[3] newScale) { scale.vector = newScale; }
+    @property void scaleArray(double[3] newScale) { scale.v = newScale; }
 
     /++
      + Gets the orientation of this element as a static-length double array of
@@ -40,10 +49,7 @@ public:
     @SerializedName("orientation")
     @property const double[3] orientationEulersArray()
     {
-        with(orientation)
-        {
-            return [roll, pitch, yaw];
-        }
+        return orientation.toEulerAngles().v;
     }
 
     /++
@@ -56,15 +62,6 @@ public:
     @SerializedName("orientation")
     @property void orientationEulersArray(double[] newScale)
     {
-        orientation = quat4d.euler_rotation(newScale[0], newScale[1], newScale[2]);
-    }
-
-    this(string className, string model, vec3d position, vec3d scale, quat4d orientation)
-    {
-        this.className = className;
-        this.model = model;
-        this.position = position;
-        this.scale = scale;
-        this.orientation = orientation;
+        orientation = quatd.fromEulerAngles(newScale[0], newScale[1], newScale[2]);
     }
 }

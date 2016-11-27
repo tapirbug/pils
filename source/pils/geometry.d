@@ -1,8 +1,7 @@
-
+/+++
 public
 {
-    import gl3n.linalg;
-    import pils.quat4d;
+    import pils.geom.typecons;
 }
 
 private
@@ -15,17 +14,14 @@ private
     import std.conv : to;
     import std.typecons : tuple, Nullable;
     import std.math;
-    import gl3n.math : almost_equal, clamp;
+    import gfm.math.funcs : clamp, lerp;
+    //import gl3n.math : approxEqual, clamp;
 }
 
 struct Polygon
 {
     vec3d position = vec3d(0, 0, 0);
-    quat4d orientation = quat4d.identity;
-
-    @property vec3d unitX() { return orientation * vec3d(1, 0, 0); }
-    @property vec3d unitY() { return orientation * vec3d(0, 1, 0); }
-    @property vec3d unitZ() { return orientation * vec3d(0, 0, 1); }
+    quatd orientation = quatd.identity;
 
     Face[] faces;
 }
@@ -275,11 +271,11 @@ struct Face
         );
 
         // All angles should amount to 180°
-        assert(almost_equal(sum(tri.interiorAngles), PI));
+        assert(approxEqual(sum(tri.interiorAngles), PI));
 
-        assert(almost_equal(tri.interiorAngles[0], 0.5*PI));
-        assert(almost_equal(tri.interiorAngles[1], 0.25*PI));
-        assert(almost_equal(tri.interiorAngles[2], 0.25*PI));
+        assert(approxEqual(tri.interiorAngles[0], 0.5*PI));
+        assert(approxEqual(tri.interiorAngles[1], 0.25*PI));
+        assert(approxEqual(tri.interiorAngles[2], 0.25*PI));
     }
 
     /++
@@ -304,9 +300,9 @@ struct Face
             vec2d(0.0, 10.0)
         );
 
-        assert(almost_equal(tri.exteriorAngles[0], 1.5*PI));
-        assert(almost_equal(tri.exteriorAngles[1], 1.75*PI));
-        assert(almost_equal(tri.exteriorAngles[2], 1.75*PI));
+        assert(approxEqual(tri.exteriorAngles[0], 1.5*PI));
+        assert(approxEqual(tri.exteriorAngles[1], 1.75*PI));
+        assert(approxEqual(tri.exteriorAngles[2], 1.75*PI));
     }
 
     /++
@@ -364,10 +360,10 @@ unittest
     vec2d left = vec2d(-1.0, 0.0);
     vec2d leftDown = vec2d(-1.0, -1.0);
 
-    assert(almost_equal(angleBetween(up, origin, right), 1.5*PI));
-    assert(almost_equal(angleBetween(right, origin, up), 0.5*PI));
-    assert(almost_equal(angleBetween(leftDown, origin, left), 1.75*PI));
-    assert(almost_equal(angleBetween(left, origin, leftDown), 0.25*PI));
+    assert(approxEqual(angleBetween(up, origin, right), 1.5*PI));
+    assert(approxEqual(angleBetween(right, origin, up), 0.5*PI));
+    assert(approxEqual(angleBetween(leftDown, origin, left), 1.75*PI));
+    assert(approxEqual(angleBetween(left, origin, leftDown), 0.25*PI));
 }
 
 enum Parallelity
@@ -390,11 +386,11 @@ Parallelity parallelity(vec2d v1, vec2d v2)
     v1.normalize();
     v2.normalize();
 
-    if(almost_equal(v1, v2))
+    if(approxEqual(v1.v, v2.v))
     {
         return Parallelity.parallel;
     }
-    else if(almost_equal(v1, -v2))
+    else if(approxEqual(v1.v, (-v2).v))
     {
         return Parallelity.antiparallel;
     }
@@ -477,7 +473,7 @@ vec2d[] intersect(Edge edge1, Edge edge2)
                 {
                     real dotProduct = dot(points[i1], points[i2]);
 
-                    if(!lastDotProduct.isNull() && !almost_equal(dotProduct, lastDotProduct.get()))
+                    if(!lastDotProduct.isNull() && !approxEqual(dotProduct, lastDotProduct.get()))
                     {
                         allSameDirection = false;
                     }
@@ -535,7 +531,7 @@ vec2d[] intersect(Edge edge1, Edge edge2)
             auto edge1OrthogonalIntersection = intersectNonParallelLines(edge1, edge1Orthogonal);
             auto edge2OrthogonalIntersection = intersectNonParallelLines(edge2, edge1Orthogonal);
 
-            if(almost_equal(edge1OrthogonalIntersection, edge2OrthogonalIntersection))
+            if(approxEqual(edge1OrthogonalIntersection.v, edge2OrthogonalIntersection.v))
             {
                 // lines are colinear and may share a common line segment
                 // If they do share a line segment, they will have two intersection
@@ -546,7 +542,7 @@ vec2d[] intersect(Edge edge1, Edge edge2)
                 // the two points in the middle are the intersections
                 intersections = sortDirectionally(points)[1..$-1];
 
-                if(almost_equal(intersections[0], intersections[1], 0.0001))
+                if(approxEqual(intersections[0].v, intersections[1].v, 0.0001))
                 {
                     // If lines touch by very very little, only one intersection
                     // is returned
@@ -738,9 +734,9 @@ unittest
     vec2d middle = vec2d(5.0, 5.0) + vec2d(-1.0, 1.0);
     vec2d after = vec2d(10.0, 12.0);
 
-    assert(almost_equal(nearest(edge, before), edge.start));
-    assert(almost_equal(nearest(edge, middle), vec2d(5.0, 5.0)));
-    assert(almost_equal(nearest(edge, after),  edge.end));
+    assert(approxEqual(nearest(edge, before).v, edge.start.v));
+    assert(approxEqual(nearest(edge, middle).v, vec2d(5.0, 5.0).v));
+    assert(approxEqual(nearest(edge, after).v,  edge.end.v));
 }
 
 private:
@@ -910,3 +906,4 @@ unittest
     // TODO test polygon that intersects itself
     // TODO test two polygons that share a common edge
 }
++/
