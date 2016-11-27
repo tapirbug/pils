@@ -9,6 +9,13 @@ private
 {
 }
 
+/++
+ + Submits objects to the solver, which in turn places them one by one.
+ + The Planner provides some higher level control, e.g. place 12 desks or
+ + add wardrobes until there is 3 cubic meters of space for clothes.
+ +
+ + The Planner works by executing a number of rules in order.
+ +/
 class Planner
 {
 public:
