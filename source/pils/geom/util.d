@@ -21,6 +21,16 @@ Contour contour(V)(V vertices) if(isInputRange!V && is(ElementType!V == vec2d))
 }
 
 /++
+ + Constructs an n-sided contour from n vertices obtained from the given range,
+ + where each vertex is either a dynamic array at least of length 2 or a static
+ + array of length 2.
+ +/
+Contour contour(V)(V vertices) if(isInputRange!V && (is(ElementType!V == double[]) || is(ElementType!V == double[2])))
+{
+    return Contour(vertices.map!((v) => vec2d(v[0], v[1]))().array);
+}
+
+/++
  + Constructs an n-sided contour from n vectors given to this function.
  +
  + Examples:

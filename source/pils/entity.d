@@ -3,65 +3,127 @@ module pils.entity;
 public
 {
     import pils.geom.typecons;
+    import pils.feature;
 }
 
 private
 {
+    import std.typecons : Proxy;
+    import std.algorithm.searching : canFind;
+    import std.algorithm.iteration : filter, map;
+    import std.array;
+    import std.exception;
+    import std.file;
+    import std.path;
+    import std.json : parseJSON;
     import painlessjson;
+    import pils.geom.pose;
+}
+
+class EntityLibrary
+{
+    this(string basePath)
+    {
+        enforce(isDir(basePath));
+        loadFrom(basePath);
+    }
+
+
+private:
+    EntityPrototype[] protoypes;
+
+    void loadFrom(string basePath)
+    {
+        bool isProtoypeDir(string dir)
+        {
+            if(!isDir(dir))
+            {
+                return false;
+            }
+
+            auto dirname = baseName(dir);
+            auto contentFiles = dir.dirEntries(SpanMode.shallow)
+                                   .filter!isFile()
+                                   .map!baseName();
+
+            return contentFiles.canFind(dirname ~ ".json");
+        }
+
+        EntityPrototype dirToPrototype(string dir)
+        {
+            auto proto = new EntityPrototype();
+
+            auto dirname = baseName(dir);
+            string dataFilePath = chainPath(dir, dirname ~ ".json").array;
+
+            import std.stdio;writeln("Prototype:\n", dataFilePath.readText()
+                               .parseJSON()
+                               .fromJSON!EntityPrototype().features);
+
+            return dataFilePath.readText()
+                               .parseJSON()
+                               .fromJSON!EntityPrototype();
+        }
+
+        protoypes = basePath.dirEntries(SpanMode.shallow)
+                            .filter!isProtoypeDir()
+                            .map!dirToPrototype().array;
+    }
+}
+
+unittest
+{
+    import std.stdio;
+
+    // a relative path should not throw
+    auto lib = new EntityLibrary("examples/classlibs/krachzack");
+
+
+}
+
+class EntityPrototype
+{
+public:
+    EntityMeta meta;
+    EntityPlacement[] placements;
+    Feature[] features;
+
+    Entity instantiate(vec3d position, vec3d scale, quatd orientation)
+    {
+        return new Entity(this, position, scale, orientation);
+    }
 }
 
 class Entity
 {
 public:
-    string className;
-    string groundTag;
-    string model;
-    @SerializeIgnore vec3d position;
-    @SerializeIgnore vec3d scale;
-    @SerializeIgnore quatd orientation;
+    EntityPrototype prototype;
+    mixin Proxy!prototype;
+    Pose!3 pose;
 
-    this(string className, string model, vec3d position, vec3d scale, quatd orientation)
+private:
+    this(EntityPrototype prototype, vec3d position, vec3d scale, quatd orientation)
     {
-        this.className = className;
-        this.model = model;
-        this.position = position;
-        this.scale = scale;
-        this.orientation = orientation;
+        this.prototype = prototype;
+        this.pose.position = position;
+        this.pose.scale = scale;
+        this.pose.orientation = orientation;
     }
+}
 
-    @SerializedName("position")
-    @property const double[3] positionArray() { return position.v; }
-    @SerializedName("position")
-    @property void positionArray(double[3] newPos) { position.v = newPos; }
+class EntityMeta
+{
+    string id;
+    string name;
+    string description;
+    string[] tags;
+    string[] authors;
+}
 
-    @SerializedName("scale")
-    @property const double[3] scaleArray() { return scale.v; }
-    @SerializedName("scale")
-    @property void scaleArray(double[3] newScale) { scale.v = newScale; }
+struct EntityPlacement
+{
+    string name;
+    string mesh;
 
-    /++
-     + Gets the orientation of this element as a static-length double array of
-     + eulerian angles. The order is XYZ or more formally, roll, pitch, yaw.
-     + Yaw is defined as the rotation around the X axis, pitch around the Y axis
-     + and roll around the z axis. This is compatible to the default setting in
-     + blender which is XYZ a.k.a roll, pitch, yaw.
-     +/
-    @SerializedName("orientation")
-    @property const double[3] orientationEulersArray()
-    {
-        return orientation.toEulerAngles().v;
-    }
-
-    /++
-     + Sets the orientation of this element with an array of three euler angles.
-     + The order is XYZ or more formally, roll, pitch, yaw.
-     + Yaw is defined as the rotation around the X axis, pitch around the Y axis
-     + and roll around the z axis. This is compatible to the default setting in
-     + blender which is XYZ a.k.a roll, pitch, yaw.
-     +/
-    @SerializedName("orientation")
-    @property void orientationEulersArray(double[] newScale)
-    {
-        orientation = quatd.fromEulerAngles(newScale[0], newScale[1], newScale[2]);
-    }
+    Pose!3 pose;
 }

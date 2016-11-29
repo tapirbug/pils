@@ -22,7 +22,7 @@ class Solver
 
     void place(Entity newEnt)
     {
-        auto groundFeatures = layout.findFeaturesByTag(newEnt.groundTag);
+        //auto groundFeatures = layout.findFeaturesByTag(newEnt.groundTag);
     }
 
 private:
