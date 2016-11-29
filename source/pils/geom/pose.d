@@ -7,8 +7,100 @@ public
 
 private
 {
-    import painlessjson;
     import std.conv : to;
+    import std.exception : enforce;
+    import std.algorithm.iteration;
+    import std.array : array;
+    import std.json;
+}
+
+struct Pose
+{
+    vec3d position = vec3d(0.0, 0.0, 0.0);
+    vec3d scale = vec3d(1.0, 1.0, 1.0);
+    quatd orientation = quatd.identity;
+
+    static Pose _fromJSON(JSONValue val)
+    {
+        double doublify(const(JSONValue) v)
+        {
+            if(v.type() == JSON_TYPE.INTEGER)
+            {
+                return cast(double) v.integer;
+            }
+            else if(v.type() == JSON_TYPE.FLOAT)
+            {
+                return cast(double) v.floating;
+            }
+
+            return double.nan;
+        }
+
+        Pose pose;
+
+        if (const(JSONValue)* valPosition = "position" in val)
+        {
+            auto vals = valPosition.array;
+            double[] arr = vals.map!doublify().array;
+            enforce(arr.length == 3);
+            pose.position = arr;
+        }
+
+        if (const(JSONValue)* valScale = "scale" in val)
+        {
+            auto vals = valScale.array;
+            double[] arr = vals.map!doublify().array;
+            enforce(arr.length == 3);
+            pose.scale = arr;
+        }
+
+        if (const(JSONValue)* valOrientation = "orientation" in val)
+        {
+            auto vals = valOrientation.array;
+            double[] arr = vals.map!doublify().array;
+            enforce(arr.length == 4);
+
+            pose.orientation.x = arr[0];
+            pose.orientation.y = arr[1];
+            pose.orientation.z = arr[2];
+            pose.orientation.w = arr[3];
+        }
+
+        return pose;
+    }
+
+    const JSONValue _toJSON()
+    {
+        JSONValue[string] json;
+        json["orientation"] = JSONValue(orientation.v.v);
+        json["position"] = JSONValue(position.v);
+        json["scale"] = JSONValue(scale.v);
+        return JSONValue(json);
+    }
+}
+
+/*struct Pose(size_t dim)
+{
+    static if(dim == 2)
+    {
+        // Here orientation is one float representing the angle, no accessors needed
+        float orientation;
+        @SerializeIgnore vec2d position = vec2d(0.0, 0.0);
+        @SerializeIgnore vec2d scale = vec2d(1.0, 1.0);
+    }
+    else static if(dim == 3)
+    {
+        @SerializeIgnore vec3d position = vec3d(0.0, 0.0, 0.0);
+        @SerializeIgnore vec3d scale = vec3d(1.0, 1.0, 1.0);
+
+        @SerializeIgnore quatd orientation = quatd.identity;
+        mixin DimensionProperties!("orientation", 4);
+    }
+    else
+    {
+        @SerializeIgnore Vector!(double, dim) position;
+        @SerializeIgnore Vector!(double, dim) scale;
+    }
 }
 
 struct Pose(size_t dim)
@@ -20,7 +112,7 @@ struct Pose(size_t dim)
 
     static if(dim == 2)
     {
-        // Here orientation is a one float representing the angle, no accessors needed
+        // Here orientation is one float representing the angle, no accessors needed
         float orientation;
         @SerializeIgnore vec2d position = vec2d(0.0, 0.0);
         @SerializeIgnore vec2d scale = vec2d(1.0, 1.0);
@@ -125,3 +217,4 @@ template generateDimensionWriter(string targetProperty, size_t dimIdx)
                                    targetProperty ~ dimensionSuffixesDotLC[dimIdx] ~ " = val;" ~
                                    "}";
 }
+*/

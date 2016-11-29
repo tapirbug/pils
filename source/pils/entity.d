@@ -9,7 +9,7 @@ public
 private
 {
     import std.typecons : Proxy;
-    import std.algorithm.searching : canFind;
+    import std.algorithm.searching : canFind, find;
     import std.algorithm.iteration : filter, map;
     import std.array;
     import std.exception;
@@ -22,6 +22,15 @@ private
 
 class EntityLibrary
 {
+public:
+    EntityPrototype[] protoypes;
+
+    EntityPrototype findByID(string id)
+    {
+        auto result = protoypes.find!((p) => p.meta.id == id)();
+        return result.empty ? null : result.front;
+    }
+
     this(string basePath)
     {
         enforce(isDir(basePath));
@@ -30,7 +39,6 @@ class EntityLibrary
 
 
 private:
-    EntityPrototype[] protoypes;
 
     void loadFrom(string basePath)
     {
@@ -55,10 +63,6 @@ private:
 
             auto dirname = baseName(dir);
             string dataFilePath = chainPath(dir, dirname ~ ".json").array;
-
-            import std.stdio;writeln("Prototype:\n", dataFilePath.readText()
-                               .parseJSON()
-                               .fromJSON!EntityPrototype().features);
 
             return dataFilePath.readText()
                                .parseJSON()
@@ -88,23 +92,26 @@ public:
     EntityPlacement[] placements;
     Feature[] features;
 
-    Entity instantiate(vec3d position, vec3d scale, quatd orientation)
+    Entity instantiate(vec3d position, vec3d scale=vec3d(1.0, 1.0, 1.0), quatd orientation=quatd.identity)
     {
-        return new Entity(this, position, scale, orientation);
+        return new Entity(meta, placements, features, position, scale, orientation);
     }
 }
 
 class Entity
 {
 public:
-    EntityPrototype prototype;
-    mixin Proxy!prototype;
-    Pose!3 pose;
+    EntityMeta meta;
+    EntityPlacement[] placements;
+    Feature[] features;
+    Pose pose;
 
 private:
-    this(EntityPrototype prototype, vec3d position, vec3d scale, quatd orientation)
+    this(EntityMeta meta, EntityPlacement[] placements, Feature[] features, vec3d position, vec3d scale, quatd orientation)
     {
-        this.prototype = prototype;
+        this.meta = meta;
+        this.placements = placements;
+        this.features = features;
         this.pose.position = position;
         this.pose.scale = scale;
         this.pose.orientation = orientation;
@@ -125,5 +132,5 @@ struct EntityPlacement
     string name;
     string mesh;
 
-    Pose!3 pose;
+    Pose pose;
 }

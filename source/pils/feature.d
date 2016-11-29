@@ -20,7 +20,7 @@ struct Feature
     @SerializeIgnore Polygon polygon;
     string name;
     string[] tags;
-    Pose!3 pose;
+    Pose pose;
 
     @SerializedName("vertices")
     @property double[][][] polygonVertices() {
