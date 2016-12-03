@@ -7,6 +7,8 @@ public
     import gfm.math.matrix;
     // Line segments, planes, etc.
     import gfm.math.shapes;
+    import std.algorithm.iteration : map;
+    import std.array : array;
 }
 
 /++
@@ -15,6 +17,8 @@ public
 struct Contour
 {
     vec2d[] vertices;
+
+    @property auto dup() { return Contour(vertices.dup); }
 }
 
 /++
@@ -23,6 +27,10 @@ struct Contour
 struct Polygon
 {
     Contour[] contours;
+
+    @property auto dup() {
+        return Polygon(contours.map!((d) => d.dup)().array);
+    }
 }
 
 struct Region

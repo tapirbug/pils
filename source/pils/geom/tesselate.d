@@ -38,7 +38,7 @@ gpc_polygon gpcPolygon(ref Polygon poly)
     return polygon;
 }
 
-vec2d[][] toTriangleStrips(Polygon poly)
+@property TriangleStrip[] triangleStrips(Polygon poly)
 {
     gpc_polygon polygon = gpcPolygon(poly);
 
@@ -47,7 +47,7 @@ vec2d[][] toTriangleStrips(Polygon poly)
 
     auto strips = tristrip.strip[0..tristrip.num_strips];
 
-    vec2d[][] copiedStrips;
+    TriangleStrip[] copiedStrips;
     foreach(strip; strips)
     {
         auto vertices = strip.vertex[0..strip.num_vertices];
@@ -58,7 +58,7 @@ vec2d[][] toTriangleStrips(Polygon poly)
             stripVerts ~= vec2d(vertex.x, vertex.y);
         }
 
-        copiedStrips ~= stripVerts;
+        copiedStrips ~= TriangleStrip(stripVerts);
     }
 
     gpc_free_polygon(&polygon);
@@ -67,8 +67,36 @@ vec2d[][] toTriangleStrips(Polygon poly)
     return copiedStrips;
 }
 
+struct TriangleStrip
+{
+    vec2d[] strip;
+    bool flipOrder = false;
+
+    @property bool empty() const {
+        return strip.length <= 3;
+    }
+
+    @property triangle2d front() {
+        if(flipOrder)
+        {
+            return triangle2d(strip[0], strip[2], strip[1]);
+        }
+        else
+        {
+            return triangle2d(strip[0], strip[1], strip[2]);
+        }
+    }
+
+    void popFront() {
+        strip = strip[1 .. $];
+        flipOrder = !flipOrder;
+    }
+}
+
 unittest
 {
+    import std.array;
+    
     auto quad = polygon(
         vec2d(0.0, 0.0),
         vec2d(1.0, 0.0),
@@ -77,7 +105,7 @@ unittest
         vec2d(0.5, 0.5)
     );
 
-    vec2d[][] strips = quad.toTriangleStrips();
+    auto strips = quad.triangleStrips.array;
 
     assert(strips.length == 1);
 }
