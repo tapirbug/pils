@@ -2,6 +2,9 @@ module pils.layout;
 
 private
 {
+    import std.algorithm.searching : canFind;
+    import std.algorithm.iteration : map, filter, reduce, joiner;
+    import std.range : chain;
     import pils.entity;
     import pils.feature;
     import pils.geom.typecons;
@@ -11,24 +14,11 @@ private
 class Layout
 {
 public:
-    @property Entity[] entities()
+    Entity[] entities;
+
+    @property auto features()
     {
-        return [
-            new Entity(
-                "IkeaChairFusion",
-                "/Users/phil/Dropbox/IM16/PRO1 libpils/Modelle/Sitzgruppe/IKEA_chair_FUSION/3cd4399871fb1a8768d1b9a1d97e2846_obj0_object.obj",
-                vec3d(5.0, 2.0, 0.0),
-                vec3d(0.01, 0.01, 0.01),
-                quatd.identity()
-            ),
-            new Entity(
-                "IkeaDeskLeksvik",
-                "/Users/phil/Dropbox/IM16/PRO1 libpils/Modelle/Tisch/Schreibtisch--IKEA_desk_LEKSVIK/e4265ddbf415ef1877fe0205d04e5011_obj0_object.obj",
-                vec3d(-5.0, 0.0, 0.0),
-                vec3d(0.01, 0.01, 0.01),
-                quatd.identity()
-            )
-        ];
+        return entities.map!((e) => e.features)().joiner();
     }
 
     @property string json()
@@ -36,8 +26,13 @@ public:
         return entities.toJSON.toString;
     }
 
-    Feature[] findFeaturesByTag(string tag)
+    auto findFeaturesByTag(string tag)
     {
-        assert(false);
+        return features.filter!((f) => f.tags.canFind(tag));
+    }
+
+    void opOpAssign(string op)(Entity newEntity) if(op == "~")
+    {
+        entities ~= newEntity;
     }
 }
