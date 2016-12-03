@@ -2,6 +2,9 @@ module pils.layout;
 
 private
 {
+    import std.algorithm.searching : canFind;
+    import std.algorithm.iteration : map, filter, reduce, joiner;
+    import std.range : chain;
     import pils.entity;
     import pils.feature;
     import pils.geom.typecons;
@@ -11,19 +14,11 @@ private
 class Layout
 {
 public:
-    @property Entity[] entities()
+    Entity[] entities;
+
+    @property auto features()
     {
-        auto lib = new EntityLibrary("examples/classlibs/krachzack");
-
-        EntityPrototype tofteryd = lib.findByID("krachzack.tofteryd");
-        Entity[] ents = [
-            tofteryd.instantiate(vec3d(-0.5, 0, 1), vec3d(1, 1, 1), quatd.identity()),
-            tofteryd.instantiate(vec3d(1, 0, 1), vec3d(1, 1, 1), quatd.identity())
-        ];
-
-        writeln(ents.toJSON.toString);
-
-        return ents;
+        return entities.map!((e) => e.features)().joiner();
     }
 
     @property string json()
@@ -31,8 +26,13 @@ public:
         return entities.toJSON.toString;
     }
 
-    Feature[] findFeaturesByTag(string tag)
+    auto findFeaturesByTag(string tag)
     {
-        assert(false);
+        return features.filter!((f) => f.tags.canFind(tag));
+    }
+
+    void opOpAssign(string op)(Entity newEntity) if(op == "~")
+    {
+        entities ~= newEntity;
     }
 }

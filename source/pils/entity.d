@@ -33,7 +33,7 @@ public:
 
     this(string basePath)
     {
-        enforce(isDir(basePath));
+        enforce(isDir(basePath), "Library base path must be a directory");
         loadFrom(basePath);
     }
 
@@ -59,14 +59,21 @@ private:
 
         EntityPrototype dirToPrototype(string dir)
         {
-            auto proto = new EntityPrototype();
-
             auto dirname = baseName(dir);
             string dataFilePath = chainPath(dir, dirname ~ ".json").array;
 
-            return dataFilePath.readText()
-                               .parseJSON()
-                               .fromJSON!EntityPrototype();
+            EntityPrototype proto = dataFilePath.readText()
+                                                .parseJSON()
+                                                .fromJSON!EntityPrototype();
+
+
+            foreach(ref pl; proto.placements)
+            {
+                pl.mesh = chainPath(dir, pl.mesh).array.absolutePath();
+            }
+
+            return proto;
+
         }
 
         protoypes = basePath.dirEntries(SpanMode.shallow)
@@ -125,12 +132,12 @@ class EntityMeta
     string description;
     string[] tags;
     string[] authors;
+    string directory;
 }
 
 struct EntityPlacement
 {
     string name;
     string mesh;
-
     Pose pose;
 }
