@@ -73,13 +73,18 @@ gpc_polygon gpcPolygon(ref Polygon poly)
     return poly.triangleStrips.joiner;
 }
 
+@property auto triangleVertices(Polygon poly)
+{
+    return poly.triangles.map!((tri) => [tri.a, tri.b, tri.c])().joiner;
+}
+
 struct TriangleStrip
 {
     vec2d[] strip;
     bool flipOrder = false;
 
     @property bool empty() const {
-        return strip.length <= 3;
+        return strip.length < 3;
     }
 
     @property triangle2d front() {
