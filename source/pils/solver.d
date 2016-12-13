@@ -6,6 +6,9 @@ private
     import pils.entity;
     import pils.geom.sets;
     import pils.geom.tesselate;
+    import pils.geom.dump;
+
+    import std.stdio;
     import std.random;
     import std.array;
     import std.exception : enforce;
@@ -32,7 +35,7 @@ class Solver
     {
         source = source.dup;
 
-        foreach(contour; source.contours)
+        foreach(ref contour; source.contours)
         {
             auto orientationMat = cast(mat4d) pose.orientation;
 
@@ -47,10 +50,9 @@ class Solver
         return source;
     }
 
-    bool overlapAllowedWith(Feature f1, Feature f2)
+    bool cannotOverlap(Feature f1, Feature f2)
     {
-        return !f2.tags.canFind("OffLimits");
-        //return !f1.tags.canFind("OffLimits") && !f2.tags.canFind("OffLimits");
+        return f1.tags.canFind("OffLimits") && f2.tags.canFind("OffLimits");
     }
 
     void place(EntityPrototype proto, string groundTag)
@@ -65,26 +67,26 @@ class Solver
         auto possibleLocationsPose = firstGroundFeature.pose;
 
         possibleLocations = transformPoly(possibleLocations, possibleLocationsPose);
-        import std.stdio;
-
 
         foreach(protoFeature; proto.features)
         {
-            foreach(layoutFeature; layout.features)
+            foreach(layoutEnt; layout.entities)
             {
-                if(!overlapAllowedWith(protoFeature, layoutFeature))
+                foreach(layoutFeature; layoutEnt.features)
                 {
-                    auto protoFeaturePoly = transformPoly(protoFeature.polygon, protoFeature.pose);
-                    auto layoutFeaturePoly = transformPoly(layoutFeature.polygon, layoutFeature.pose);
+                    if(cannotOverlap(protoFeature, layoutFeature))
+                    {
+                        auto protoFeaturePoly = transformPoly(protoFeature.polygon, protoFeature.pose);
+                        auto layoutFeaturePoly = transformPoly(transformPoly(layoutFeature.polygon, layoutFeature.pose), layoutEnt.pose);
+                        //writeln("Proto: ", protoFeaturePoly);
+                        //writeln("Possible before: ", possibleLocations);
+                        //writeln("Layout: ", layoutFeaturePoly);
 
-                    //writeln("Proto: ", protoFeaturePoly);
-                    writeln("Possible before: ", possibleLocations);
-                    writeln("Layout: ", layoutFeaturePoly);
-
-                    // TODO subtract MinkowksiSum not just layoutFeaturePoly
-                    possibleLocations = possibleLocations.difference(layoutFeaturePoly);
-                    writeln("Still possible locations: ", possibleLocations);
-                    writeln();
+                        // TODO subtract MinkowksiSum not just layoutFeaturePoly
+                        possibleLocations = possibleLocations.difference(layoutFeaturePoly);
+                        //writeln("Still possible locations: ", possibleLocations);
+                        //writeln();
+                    }
                 }
             }
         }
@@ -93,7 +95,11 @@ class Solver
 
         if(!possibleLocations.contours.empty)
         {
-            auto allTriangles = possibleLocations.triangleStrips.joiner.array;
+            debug {
+                possibleLocations.dump(possibleLocationsPose, "/Users/phil/debug", "possible contours");
+            }
+
+            auto allTriangles = possibleLocations.triangles.array;
             auto allAreas     = allTriangles.map!((t) => t.area)();
             auto anyTriangleIndex = dice(allAreas);
 
@@ -101,7 +107,7 @@ class Solver
 
             auto anyTriangleCenter = (anyTriangle.a + anyTriangle.b + anyTriangle.c) / 3;
 
-            auto ent = proto.instantiate(vec3d(anyTriangleCenter.x, 0.0, anyTriangleCenter.y));
+            auto ent = proto.instantiate(vec3d(anyTriangleCenter.x, 0.0, anyTriangleCenter.y), possibleLocationsPose.orientation);
             layout ~= ent;
         }
 

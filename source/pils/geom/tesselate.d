@@ -11,6 +11,7 @@ private
     import pils.geom.util;
     import deimos.gpc;
     import std.range;
+    import std.algorithm.iteration : joiner;
 }
 
 gpc_polygon gpcPolygon(ref Polygon poly)
@@ -67,13 +68,23 @@ gpc_polygon gpcPolygon(ref Polygon poly)
     return copiedStrips;
 }
 
+@property auto triangles(Polygon poly)
+{
+    return poly.triangleStrips.joiner;
+}
+
+@property auto triangleVertices(Polygon poly)
+{
+    return poly.triangles.map!((tri) => [tri.a, tri.b, tri.c])().joiner;
+}
+
 struct TriangleStrip
 {
     vec2d[] strip;
     bool flipOrder = false;
 
     @property bool empty() const {
-        return strip.length <= 3;
+        return strip.length < 3;
     }
 
     @property triangle2d front() {
@@ -96,7 +107,7 @@ struct TriangleStrip
 unittest
 {
     import std.array;
-    
+
     auto quad = polygon(
         vec2d(0.0, 0.0),
         vec2d(1.0, 0.0),
