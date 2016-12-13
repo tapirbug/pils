@@ -7,6 +7,7 @@ private
     import pils.geom.sets;
     import pils.geom.tesselate;
     import pils.geom.dump;
+    import pils.geom.minkowski;
 
     import std.stdio;
     import std.random;
@@ -78,12 +79,13 @@ class Solver
                     {
                         auto protoFeaturePoly = transformPoly(protoFeature.polygon, protoFeature.pose);
                         auto layoutFeaturePoly = transformPoly(transformPoly(layoutFeature.polygon, layoutFeature.pose), layoutEnt.pose);
+                        auto layoutFeatureImpossible = minkowskiSum(layoutFeaturePoly, protoFeaturePoly);
                         //writeln("Proto: ", protoFeaturePoly);
                         //writeln("Possible before: ", possibleLocations);
                         //writeln("Layout: ", layoutFeaturePoly);
 
                         // TODO subtract MinkowksiSum not just layoutFeaturePoly
-                        possibleLocations = possibleLocations.difference(layoutFeaturePoly);
+                        possibleLocations = possibleLocations.difference(layoutFeatureImpossible);
                         //writeln("Still possible locations: ", possibleLocations);
                         //writeln();
                     }
