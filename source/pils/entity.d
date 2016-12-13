@@ -99,7 +99,7 @@ public:
     EntityPlacement[] placements;
     Feature[] features;
 
-    Entity instantiate(vec3d position, vec3d scale=vec3d(1.0, 1.0, 1.0), quatd orientation=quatd.identity)
+    Entity instantiate(vec3d position, quatd orientation=quatd.identity, vec3d scale=vec3d(1.0, 1.0, 1.0))
     {
         return new Entity(meta, placements, features, position, scale, orientation);
     }
