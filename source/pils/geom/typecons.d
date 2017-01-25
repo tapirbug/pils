@@ -7,6 +7,7 @@ public
     import gfm.math.matrix;
     // Line segments, planes, etc.
     import gfm.math.shapes;
+    import gfm.math.funcs : clamp, lerp, radians, degrees;
     import std.algorithm.iteration : map;
     import std.array : array;
 }
@@ -28,12 +29,12 @@ struct Polygon
 {
     Contour[] contours;
 
-    @property auto dup() {
-        return Polygon(contours.map!((d) => d.dup)().array);
-    }
+    @property auto dup() { return Polygon(contours.map!((d) => d.dup)().array); }
 }
 
 struct Region
 {
     Polygon[] polygons;
+
+    @property auto dup() { return Region(polygons.map!((p) => p.dup)().array); }
 }
