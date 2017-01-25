@@ -10,6 +10,9 @@ private
     import std.algorithm;
     import std.range;
     import std.typecons;
+    import std.math : approxEqual;
+    import std.range.primitives;
+    import std.traits : hasMember;
 }
 
 /++
@@ -139,4 +142,61 @@ unittest
         seg2d(vec2d(1.0, -1.0), vec2d(0.0, 1.0)),
         seg2d(vec2d(0.0, 1.0), vec2d(-1.0, -1.0))
     ) == triangle.incidentEdges[2]);
+}
+
+/++
+ + Gets the normalized direction from point a to point b of the given segment.
+ +/
+@property auto direction(T)(T seg) if(isSegment!T)
+{
+    return (seg.b - seg.a).normalized;
+}
+
+unittest
+{
+    auto left = direction(seg2d(vec2d(1.0, 0.0), vec2d(-1.1, 0.0)));
+    assert(almostEqual(left, vec2d(-1.0, 0.0)));
+}
+
+/++
+ + Checks if two vectors are approximately equal by judgement of the
+ + std.math.approxEqual function applied to the internal static array embedded
+ + in the vector.
+ +
+ + Only compares identical vector types with each other.
+ +
+ + Params:
+ +       vec1 = The first vector that is compared to be almost equal to the other
+ +       vec2 = The second vector that is compared to be almost equal to the other
+ +
+ + Returns:
+ +       When vec1 and vec2 have approximately or precisely equal elements,
+ +       true is returned, otherwise false is returned
+ +/
+bool almostEqual(T, V)(T vec1, T vec2, V maxAbsoluteDelta=0.00001) if(isVector!T)
+{
+    // 1e-5 = 0.00001 is the default: https://dlang.org/phobos/std_math.html#.approxEqual
+    // 1e-2 = 0.01 is the default: https://dlang.org/phobos/std_math.html#.approxEqual
+    return approxEqual(vec1.v[], vec2.v[], 0.01, maxAbsoluteDelta);
+}
+
+/++
+ + Checks if two quaternions are approximately equal by judgement of the
+ + std.math.approxEqual function applied to the internal static array embedded
+ + in the vector that is a member of the quaternion and holds its data.
+ +
+ + Only compares identical quaternion types with each other.
+ +
+ + Params:
+ +       quat1 = The first quaternion that is compared to be almost equal to the other
+ +       quat2 = The second quaternion that is compared to be almost equal to the other
+ +
+ + Returns:
+ +       When quat1 and quat2 have approximately or precisely equal elements,
+ +       true is returned, otherwise false is returned
+ +/
+bool almostEqual(T, V)(T quat1, T quat2, V maxAbsoluteDelta=0.00001) if(isQuaternionInstantiation!T)
+{
+    // 1e-5 = 0.00001 is the default: https://dlang.org/phobos/std_math.html#.approxEqual
+    return approxEqual(quat1.v.v[], quat2.v.v[], maxAbsoluteDelta);
 }
