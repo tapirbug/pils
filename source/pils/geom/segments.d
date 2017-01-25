@@ -213,12 +213,6 @@ version(none) {
             seg2d(vec2d(0.6, 1.0), vec2d(0.4, 0.0))
         ).length == 0);
 
-        import std.stdio; writefln("Intersecting %s with %s", seg2d(vec2d(0.0, 2.0), vec2d(2.0, 0.0)),
-        seg2d(vec2d(0.0, 0.0), vec2d(2.0, 2.0)));
-        import std.stdio; writeln(intersect(
-            seg2d(vec2d(0.0, 2.0), vec2d(2.0, 0.0)),
-            seg2d(vec2d(0.0, 0.0), vec2d(2.0, 2.0))
-        ));
         assert(intersect(
             seg2d(vec2d(0.0, 2.0), vec2d(2.0, 0.0)),
             seg2d(vec2d(0.0, 0.0), vec2d(2.0, 2.0))

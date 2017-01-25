@@ -111,8 +111,6 @@ unittest
         vec2d(1.0, 0.0), vec2d(-1.0, 0.0), vec2d(0.0, 0.5), vec2d(0.0, -0.5)
     ]);
 
-    import std.stdio; writefln("Hull:\n%s", hull);
-
     assert(hull.vertices == [
         vec2d(-1.0, 0.0),
         vec2d(0.0, -0.5),
