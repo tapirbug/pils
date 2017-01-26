@@ -146,9 +146,9 @@ unittest
     //import std.stdio; writeln("Contour count: ", impossibleContours.length);
 
     /*Pose pose;
-    polygon(impossibleContours).dump(pose, "/Users/phil/debug", "actual");
-    polygon([expectedOuterImpossibleContour]).dump(pose, "/Users/phil/debug", "expected outer");
-    polygon([expectedInnerImpossibleContour]).dump(pose, "/Users/phil/debug", "expected inner");*/
+    polygon(impossibleContours).dump(pose, "debug", "actual");
+    polygon([expectedOuterImpossibleContour]).dump(pose, "debug", "expected outer");
+    polygon([expectedInnerImpossibleContour]).dump(pose, "debug", "expected inner");*/
 
     // IMPORTANT NOTE
     // As can clearly be seen in the dump, this works, but it makes the polygons in a different way I was expecting
