@@ -86,6 +86,8 @@ class Solver
 
                         // TODO subtract MinkowksiSum not just layoutFeaturePoly
                         possibleLocations = possibleLocations.difference(layoutFeatureImpossible);
+                        // possibleLocations.dump(possibleLocationsPose, "/Users/phil/debug", "possible contours");
+
                         //writeln("Still possible locations: ", possibleLocations);
                         //writeln();
                     }
@@ -98,7 +100,7 @@ class Solver
         if(!possibleLocations.contours.empty)
         {
             debug {
-                possibleLocations.dump(possibleLocationsPose, "/Users/phil/debug", "possible contours");
+                //possibleLocations.dump(possibleLocationsPose, "/Users/phil/debug", "possible contours");
             }
 
             auto allTriangles = possibleLocations.triangles.array;
