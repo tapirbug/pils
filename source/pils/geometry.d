@@ -1,3 +1,8 @@
+//
+// This is mainly code from a failed attempt to do polygon set operations,
+// it might still contain something useful to extract
+//
+
 /+++
 public
 {
