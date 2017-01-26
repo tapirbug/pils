@@ -42,7 +42,7 @@ string toOBJ(Polygon poly, Pose pose)
 void dump(Polygon poly, Pose pose, string outDirectory, string basename)
 {
     auto filename = format("%s %s.obj", basename, Clock.currTime());
-    auto targetPath = absolutePath(chainPath(outDirectory, filename));
+    auto targetPath = chainPath(absolutePath(outDirectory), filename);
     string obj = poly.toOBJ(pose);
     targetPath.write(obj);
 }
