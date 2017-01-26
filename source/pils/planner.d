@@ -44,10 +44,13 @@ public:
 
         // place some tables
         EntityPrototype tofteryd = lib.findByID("krachzack.tofteryd");
-        solver.place(tofteryd, "Ground");
-        solver.place(tofteryd, "Ground");
-        solver.place(tofteryd, "Ground");
-        solver.place(tofteryd, "Ground");
+        EntityPrototype mandal = lib.findByID("krachzack.mandal");
+
+        solver.place(mandal, "Ground");
+
+        foreach(i; 0..15) {
+            solver.place(tofteryd, "Ground");
+        }
     }
 
 private:
