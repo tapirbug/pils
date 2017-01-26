@@ -32,9 +32,8 @@ private
  + additional processing.
  +
  + Params:
- +         inputPointsRange = A finite forwards range returning at least three
- +                            consecutive points of a set of points to construct
- +                            a hull of
+ +         inputPointsRange = A finite forwards range returning consecutive
+ +                            points of a set of points to construct a hull of
  +
  + See_Also:
  +         http://doc.cgal.org/latest/Convex_hull_2/,
@@ -55,7 +54,7 @@ Contour convexHull(T)(T inputPointsRange) if(isForwardRange!T && !isInfinite!T)
     if(inputPoints.length < 3) {
         // Cannot really build a hull with 0-2 points, so just return a new
         // contour that contians the points that were passed in
-        return Contour(inputPoints);
+        return contour(inputPoints);
     }
 
     /++
