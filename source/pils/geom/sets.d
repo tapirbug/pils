@@ -19,9 +19,25 @@ Polygon merge(Polygon inputPolyA, Polygon inputPolyB)
     return clip(gpc_op.GPC_UNION, inputPolyA, inputPolyB);
 }
 
+Polygon merge(Contour inputContourA, Contour inputContourB)
+{
+    return merge(
+        polygon([inputContourA]),
+        polygon([inputContourB])
+    );
+}
+
 Polygon intersect(Polygon inputPolyA, Polygon inputPolyB)
 {
     return clip(gpc_op.GPC_INT, inputPolyA, inputPolyB);
+}
+
+Polygon intersect(Contour inputContourA, Contour inputContourB)
+{
+    return intersect(
+        polygon([inputContourA]),
+        polygon([inputContourB])
+    );
 }
 
 Polygon difference(Polygon inputPolyA, Polygon inputPolyB)
@@ -29,9 +45,25 @@ Polygon difference(Polygon inputPolyA, Polygon inputPolyB)
     return clip(gpc_op.GPC_DIFF, inputPolyA, inputPolyB);
 }
 
+Polygon difference(Contour inputContourA, Contour inputContourB)
+{
+    return difference(
+        polygon([inputContourA]),
+        polygon([inputContourB])
+    );
+}
+
 Polygon exclusiveOr(Polygon inputPolyA, Polygon inputPolyB)
 {
     return clip(gpc_op.GPC_XOR, inputPolyA, inputPolyB);
+}
+
+Polygon exclusiveOr(Contour inputContourA, Contour inputContourB)
+{
+    return exclusiveOr(
+        polygon([inputContourA]),
+        polygon([inputContourB])
+    );
 }
 
 private:
