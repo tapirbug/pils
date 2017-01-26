@@ -9,7 +9,7 @@ public
 private
 {
     import std.file : write;
-    import std.path : chainPath;
+    import std.path : chainPath, absolutePath;
     import std.string : format;
     import std.algorithm.iteration;
     import std.range : iota, chunks, chain;
@@ -42,7 +42,7 @@ string toOBJ(Polygon poly, Pose pose)
 void dump(Polygon poly, Pose pose, string outDirectory, string basename)
 {
     auto filename = format("%s %s.obj", basename, Clock.currTime());
-    auto targetPath = chainPath(outDirectory, filename);
+    auto targetPath = absolutePath(chainPath(outDirectory, filename));
     string obj = poly.toOBJ(pose);
     targetPath.write(obj);
 }
