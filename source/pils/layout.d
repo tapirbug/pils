@@ -16,6 +16,11 @@ class Layout
 public:
     Entity[] entities;
 
+    void clear()
+    {
+        entities.length = 0;
+    }
+
     @property auto features()
     {
         return entities.map!((e) => e.features)().joiner();
