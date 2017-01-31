@@ -111,7 +111,7 @@ class Solver
 
             auto anyTriangleCenter = (anyTriangle.a + anyTriangle.b + anyTriangle.c) / 3;
 
-            auto ent = proto.instantiate(vec3d(anyTriangleCenter.x, 0.0, anyTriangleCenter.y), possibleLocationsPose.orientation);
+            auto ent = proto.instantiate(vec3d(anyTriangleCenter.x, possibleLocationsPose.position.z, anyTriangleCenter.y), possibleLocationsPose.orientation);
             layout ~= ent;
         }
 
