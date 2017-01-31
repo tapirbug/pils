@@ -37,21 +37,33 @@ public:
         this.lib = lib;
     }
 
-    void planLivingroom()
+    /++
+     + Instantiates a new entity constructed off the entity prototype stored in
+     + the entity under the given id. The new entity will be placed at position.
+     +
+     + Note that no checks whatsoever are performed to ensure the placement is
+     + valid. This should only be used for purposely unchecked placements, e.g.
+     + to build the starting layout or to gain performance for some insertions
+     + that the user can guarantee are safe.
+     +/
+    void instantiate(string id, vec3d position)
     {
-        // starting layout
-        layout ~= lib.findByID("krachzack.loneroom").instantiate(vec3d(0,0,0));
-
-        // place some tables
-        EntityPrototype tofteryd = lib.findByID("krachzack.tofteryd");
-        EntityPrototype mandal = lib.findByID("krachzack.mandal");
-
-        solver.place(mandal, "Ground");
-
-        foreach(i; 0..15) {
-            solver.place(tofteryd, "Ground");
-        }
+        layout ~= lib.findByID(id).instantiate(position);
     }
 
-private:
+    /++
+     + Places a new instance of the entity protoype stored in the library under
+     + the given ID in the current layout. The algorithm will find a suitable
+     + location for the object. If no space is available for a new instance, the
+     + call will silently fail and not add anything.
+     +/
+    void place(string id, string groundTag, size_t count=1)
+    {
+        EntityPrototype proto = lib.findByID(id);
+
+        foreach(i; 0..count)
+        {
+            solver.place(proto, groundTag);
+        }
+    }
 }
