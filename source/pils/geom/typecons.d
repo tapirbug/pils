@@ -5,8 +5,7 @@ public
     import gfm.math.vector;
     import gfm.math.quaternion;
     import gfm.math.matrix;
-    // Line segments, planes, etc.
-    import gfm.math.shapes;
+    import gfm.math.shapes; // Line segments, planes, etc.
     import gfm.math.funcs : clamp, lerp, radians, degrees;
     import std.algorithm.iteration : map;
     import std.algorithm.searching : canFind;
@@ -16,7 +15,11 @@ public
 }
 
 /++
- + Ordered set of edges stored as an array of vertices.
+ + Ordered set of edges represented in memory as an array of vertices.
+ +
+ + By itself, it contains functionality for checking for equality and
+ + duplicating a contour. Additional functionality is added by the other
+ + packages in `pils.geom`.
  +/
 struct Contour
 {
