@@ -23,11 +23,19 @@ struct Contour
     vec2d[] vertices;
 
     /++
-     + Two contours are considered equal if the contain the same vertices with
-     + the same ordering. It is not required that they have the same starting
-     + index, i.e. if contour b is offset by two vertices and starts at the third
-     + vertex of the called contour, they are still considered equal if they
-     + all contain the same vertices in the same direction.
+     + Checks whether the given other contour or vector range is equal to this
+     + contour by checking whether it contains the same vertices with the same
+     + winding order.
+     +
+     + It is not required that the contour represented by the parameter has the
+     + same starting index as the called contour. Consider a contour other that
+     + is offset by two vertices and starts at the third vertex of the called
+     + contour. It is still considered equal if the winding order is the same.
+     + Check out the unit tests for some examples of equal and unequal contours.
+     +
+     + Params:
+     +         other = Other contour or range of vec2d with length property
+     +                 defined to check for equality with this contour
      +/
     bool opEquals(S)(S other) if(is(S == Contour) || isForwardRange!S && hasLength!S && is(ElementType!S == vec2d))
     {
