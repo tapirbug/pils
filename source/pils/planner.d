@@ -9,7 +9,7 @@ public
 
 private
 {
-
+    import std.exception : enforce;
 }
 
 /++
