@@ -33,7 +33,6 @@ public:
 
     this(string basePath)
     {
-        enforce(isDir(basePath), "Library base path must be a directory");
         loadFrom(basePath);
     }
 
@@ -75,6 +74,8 @@ private:
             return proto;
 
         }
+
+        enforce(isDir(basePath), "Library base path must be a directory");
 
         protoypes = basePath.dirEntries(SpanMode.shallow)
                             .filter!isProtoypeDir()
