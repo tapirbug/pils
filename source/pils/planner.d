@@ -48,7 +48,11 @@ public:
      +/
     void instantiate(string id, vec3d position)
     {
-        layout ~= lib.findByID(id).instantiate(position);
+        auto proto = lib.findByID(id);
+
+        enforce(proto !is null, "Cannot instantiate id " ~ id ~ " because it could not be found");
+
+        layout ~= proto.instantiate(position);
     }
 
     /++
@@ -59,7 +63,9 @@ public:
      +/
     void place(string id, string groundTag, size_t count=1)
     {
-        EntityPrototype proto = lib.findByID(id);
+        auto proto = lib.findByID(id);
+
+        enforce(proto !is null, "Cannot place id " ~ id ~ " because it could not be found");
 
         foreach(i; 0..count)
         {
