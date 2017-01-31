@@ -9,16 +9,19 @@ public
 private
 {
     import std.typecons : Proxy;
-    import std.algorithm.searching : canFind, find;
+    import std.algorithm.searching : canFind, find, any;
     import std.algorithm.iteration : filter, map;
     import std.array;
     import std.exception;
     import std.file;
     import std.path;
     import std.json : parseJSON;
+    import std.string : format;
     import painlessjson;
     import pils.geom.pose;
 }
+
+enum ENTITY_LIBRARY_PATH_GLOBAL = "/etc/lager/classlibs";
 
 class EntityLibrary
 {
@@ -31,55 +34,9 @@ public:
         return result.empty ? null : result.front;
     }
 
-    this(string basePath)
+    this(string libId)
     {
-        loadFrom(basePath);
-    }
-
-
-private:
-
-    void loadFrom(string basePath)
-    {
-        bool isProtoypeDir(string dir)
-        {
-            if(!isDir(dir))
-            {
-                return false;
-            }
-
-            auto dirname = baseName(dir);
-            auto contentFiles = dir.dirEntries(SpanMode.shallow)
-                                   .filter!isFile()
-                                   .map!baseName();
-
-            return contentFiles.canFind(dirname ~ ".json");
-        }
-
-        EntityPrototype dirToPrototype(string dir)
-        {
-            auto dirname = baseName(dir);
-            string dataFilePath = chainPath(dir, dirname ~ ".json").array;
-
-            EntityPrototype proto = dataFilePath.readText()
-                                                .parseJSON()
-                                                .fromJSON!EntityPrototype();
-
-
-            foreach(ref pl; proto.placements)
-            {
-                pl.mesh = chainPath(dir, pl.mesh).array.absolutePath();
-            }
-
-            return proto;
-
-        }
-
-        enforce(isDir(basePath), "Library base path must be a directory");
-
-        protoypes = basePath.dirEntries(SpanMode.shallow)
-                            .filter!isProtoypeDir()
-                            .map!dirToPrototype().array;
+        protoypes = loadEntityLibrary(libId);
     }
 }
 
@@ -141,4 +98,76 @@ struct EntityPlacement
     string name;
     string mesh;
     Pose pose;
+}
+
+private:
+
+EntityPrototype[] loadEntityLibrary(string libId)
+{
+    /++
+     + Checks if the given directory can be converted to an entityprotoype.
+     +
+     + This can be done when a json file with the same name as the directory is
+     + contained.
+     +/
+    bool isProtoypeDir(string dir)
+    {
+        if(!exists(dir) || !isDir(dir))
+        {
+            return false;
+        }
+
+        auto dirname = baseName(dir);
+        auto contentFiles = dir.dirEntries(SpanMode.shallow)
+                               .filter!isFile()
+                               .map!baseName();
+
+        return contentFiles.canFind(dirname ~ ".json");
+    }
+
+    /++
+     + Checks if a directory contains at least one protoype directory.
+     +/
+    bool isPrototypeLibrary(string dir)
+    {
+        return exists(dir) && isDir(dir) && dir.dirEntries(SpanMode.shallow).any!isProtoypeDir();
+    }
+
+    EntityPrototype dirToPrototype(string dir)
+    {
+        auto dirname = baseName(dir);
+        string dataFilePath = chainPath(dir, dirname ~ ".json").array;
+
+        EntityPrototype proto = dataFilePath.readText()
+                                            .parseJSON()
+                                            .fromJSON!EntityPrototype();
+
+
+        foreach(ref pl; proto.placements)
+        {
+            pl.mesh = chainPath(dir, pl.mesh).array.absolutePath();
+        }
+
+        return proto;
+    }
+
+    /++
+     + Returns an absolute path to the library denoted with the given id or null if
+     + no such library was found.
+     +/
+    string resolveEntityLibraryFilepath(string libId)
+    {
+        auto candiatePaths = [
+            libId,
+            chainPath(ENTITY_LIBRARY_PATH_GLOBAL, libId).array
+        ];
+
+        auto searchResult = candiatePaths.find!isPrototypeLibrary();
+        return searchResult.empty ? null : searchResult.front;
+    }
+
+    auto libraryBasePath = resolveEntityLibraryFilepath(libId);
+    return libraryBasePath.dirEntries(SpanMode.shallow)
+                          .filter!isProtoypeDir()
+                          .map!dirToPrototype().array;
 }
