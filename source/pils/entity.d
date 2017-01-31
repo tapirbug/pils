@@ -157,8 +157,8 @@ EntityPrototype[] loadEntityLibrary(string libId)
      +/
     string resolveEntityLibraryFilepath(string libId)
     {
-        auto candiatePaths = [
-            libId,
+        string[] candiatePaths = [
+            chainPath(getcwd(), libId).array,
             chainPath(ENTITY_LIBRARY_PATH_GLOBAL, libId).array
         ];
 
