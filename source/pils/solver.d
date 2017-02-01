@@ -3,11 +3,11 @@ module pils.solver;
 private
 {
     import pils.layout;
-    import pils.entity;
     import pils.geom.sets;
     import pils.geom.tesselate;
     import pils.geom.dump;
     import pils.geom.minkowski;
+    import pils.entity.warehouse;
 
     import std.stdio;
     import std.random;

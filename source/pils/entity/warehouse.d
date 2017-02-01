@@ -1,9 +1,12 @@
-module pils.entity;
+module pils.entity.warehouse;
+
+enum ENTITY_LIBRARY_PATH_GLOBAL = "/etc/lager/classlibs";
 
 public
 {
     import pils.geom.typecons;
-    import pils.feature;
+    import pils.entity.types;
+    import pils.entity.proto;
 }
 
 private
@@ -17,11 +20,8 @@ private
     import std.path;
     import std.json : parseJSON;
     import std.string : format;
-    import painlessjson;
     import pils.geom.pose;
 }
-
-enum ENTITY_LIBRARY_PATH_GLOBAL = "/etc/lager/classlibs";
 
 class EntityLibrary
 {
@@ -42,62 +42,8 @@ public:
 
 unittest
 {
-    import std.stdio;
-
     // a relative path should not throw
     auto lib = new EntityLibrary("examples/classlibs/krachzack");
-
-
-}
-
-class EntityPrototype
-{
-public:
-    EntityMeta meta;
-    EntityPlacement[] placements;
-    Feature[] features;
-
-    Entity instantiate(vec3d position, quatd orientation=quatd.identity, vec3d scale=vec3d(1.0, 1.0, 1.0))
-    {
-        return new Entity(meta, placements, features, position, scale, orientation);
-    }
-}
-
-class Entity
-{
-public:
-    EntityMeta meta;
-    EntityPlacement[] placements;
-    Feature[] features;
-    Pose pose;
-
-private:
-    this(EntityMeta meta, EntityPlacement[] placements, Feature[] features, vec3d position, vec3d scale, quatd orientation)
-    {
-        this.meta = meta;
-        this.placements = placements;
-        this.features = features;
-        this.pose.position = position;
-        this.pose.scale = scale;
-        this.pose.orientation = orientation;
-    }
-}
-
-class EntityMeta
-{
-    string id;
-    string name;
-    string description;
-    string[] tags;
-    string[] authors;
-    string directory;
-}
-
-struct EntityPlacement
-{
-    string name;
-    string mesh;
-    Pose pose;
 }
 
 private:
