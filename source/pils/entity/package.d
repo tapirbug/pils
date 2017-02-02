@@ -2,8 +2,8 @@ module pils.entity;
 
 public
 {
+    import pils.entity.blueprint;
+    import pils.entity.catalog;
     import pils.entity.feature;
-    import pils.entity.proto;
     import pils.entity.types;
-    import pils.entity.warehouse;
 }

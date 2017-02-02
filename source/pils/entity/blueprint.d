@@ -1,4 +1,4 @@
-module pils.entity.proto;
+module pils.entity.blueprint;
 
 public
 {

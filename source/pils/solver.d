@@ -7,7 +7,7 @@ private
     import pils.geom.tesselate;
     import pils.geom.dump;
     import pils.geom.minkowski;
-    import pils.entity.warehouse;
+    import pils.entity.catalog;
 
     import std.stdio;
     import std.random;

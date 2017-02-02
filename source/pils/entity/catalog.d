@@ -1,4 +1,4 @@
-module pils.entity.warehouse;
+module pils.entity.catalog;
 
 enum ENTITY_LIBRARY_PATH_GLOBAL = "/etc/lager/classlibs";
 
@@ -6,7 +6,7 @@ public
 {
     import pils.geom.typecons;
     import pils.entity.types;
-    import pils.entity.proto;
+    import pils.entity.blueprint;
 }
 
 private
