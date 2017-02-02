@@ -2,14 +2,15 @@ module pils.geom.sets;
 
 public
 {
-    import pils.geom.typecons;
+    import pils.geom.types;
 }
 
 private
 {
+    import pils.geom.cons;
     import pils.geom.util;
     import pils.geom.tesselate : gpcPolygon;
-    import deimos.gpc;
+    import bindings.gpc;
     import std.algorithm : map;
     import std.array;
 }

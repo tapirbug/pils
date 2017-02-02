@@ -5,14 +5,15 @@ module pils.geom.segments;
 
 public
 {
-    import pils.geom.typecons;
+    import pils.geom.types;
 }
 
 private
 {
-    import pils.geom.util : direction, almostEqual;
+    import pils.geom.util;
     import std.math;
-    import std.algorithm : sort;
+    import std.algorithm : sort, map;
+    import std.range : zip;
     import std.typecons : Nullable;
 }
 
@@ -398,4 +399,78 @@ unittest
     assert(almostEqual(nearest(edge, before), edge.a));
     assert(almostEqual(nearest(edge, middle), vec2d(5.0, 5.0)));
     assert(almostEqual(nearest(edge, after),  edge.b));
+}
+
+/++
+ + Returns a range that contains all edges in the polygon in straight order
+ + Starting at the seg2d from the first vertex to the second and ending with
+ + the seg2d from the last vertex to the first.
+ +/
+@property auto edges(Contour c)
+{
+    return zip(c.vertices, c.nextVertices)
+            .map!((pair) => seg2d(pair[0], pair[1]))();
+}
+
+unittest
+{
+    Contour triangle = contour(vec2d(-1.0, -1.0), vec2d(1.0, -1.0), vec2d(0.0, 1.0));
+    seg2d[] edges;
+
+    foreach(seg2d; triangle.edges)
+    {
+        edges ~= seg2d;
+    }
+
+    assert(edges.length == triangle.edges.length);
+
+    assert(edges == [
+        seg2d(vec2d(-1.0, -1.0), vec2d(1.0, -1.0)),
+        seg2d(vec2d(1.0, -1.0), vec2d(0.0, 1.0)),
+        seg2d(vec2d(0.0, 1.0), vec2d(-1.0, -1.0))
+    ]);
+
+    assert(edges == [ triangle.edges[0], triangle.edges[1], triangle.edges[2] ]);
+}
+
+@property auto incidentEdges(Contour c)
+{
+    return zip(
+        zip(c.previousVertices, c.vertices).map!((pair) => seg2d(pair[0], pair[1]))(),
+        zip(c.vertices, c.nextVertices).map!((pair) => seg2d(pair[0], pair[1]))()
+    );
+}
+
+unittest
+{
+    Contour triangle = contour(vec2d(-1.0, -1.0), vec2d(1.0, -1.0), vec2d(0.0, 1.0));
+
+    assert(tuple(
+        seg2d(vec2d(0.0, 1.0), vec2d(-1.0, -1.0)),
+        seg2d(vec2d(-1.0, -1.0), vec2d(1.0, -1.0))
+    ) == triangle.incidentEdges[0]);
+
+    assert(tuple(
+        seg2d(vec2d(-1.0, -1.0), vec2d(1.0, -1.0)),
+        seg2d(vec2d(1.0, -1.0), vec2d(0.0, 1.0))
+    ) == triangle.incidentEdges[1]);
+
+    assert(tuple(
+        seg2d(vec2d(1.0, -1.0), vec2d(0.0, 1.0)),
+        seg2d(vec2d(0.0, 1.0), vec2d(-1.0, -1.0))
+    ) == triangle.incidentEdges[2]);
+}
+
+/++
+ + Gets the normalized direction from point a to point b of the given segment.
+ +/
+@property auto direction(T)(T seg) if(isSegment!T)
+{
+    return (seg.b - seg.a).normalized;
+}
+
+unittest
+{
+    auto left = direction(seg2d(vec2d(1.0, 0.0), vec2d(-1.1, 0.0)));
+    assert(almostEqual(left, vec2d(-1.0, 0.0)));
 }

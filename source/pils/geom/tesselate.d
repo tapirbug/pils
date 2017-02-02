@@ -3,15 +3,15 @@ module pils.geom.tesselate;
 
 public
 {
-    import pils.geom.typecons;
+    import pils.geom.types;
 }
 
 private
 {
     import pils.geom.util;
-    import deimos.gpc;
+    import bindings.gpc;
     import std.range;
-    import std.algorithm.iteration : joiner;
+    import std.algorithm.iteration : map, joiner;
 }
 
 gpc_polygon gpcPolygon(ref Polygon poly)

@@ -2,12 +2,13 @@ module pils.geom.angles;
 
 public
 {
-    import pils.geom.typecons;
+    import pils.geom.types;
 }
 
 private
 {
     import std.math;
+    import std.algorithm.iteration : map;
 }
 
 /++
@@ -40,4 +41,35 @@ unittest
     assert(approxEqual(angleBetween(right, origin, up), 0.5*PI));
     assert(approxEqual(angleBetween(leftDown, origin, left), 1.75*PI));
     assert(approxEqual(angleBetween(left, origin, leftDown), 0.25*PI));
+}
+
+/++
+ + Obtains a range that yields the external angle of each vertex in the
+ + contour.
+ +/
+@property auto exteriorAngles(Contour contour)
+{
+    import pils.geom.segments : incidentEdges;
+
+    return contour.incidentEdges.map!((incidents) {
+        seg2d before = incidents[0];
+        seg2d after = incidents[1];
+
+        return angleBetween(before.a, before.b, after.b);
+    })();
+}
+
+unittest
+{
+    import pils.geom.cons;
+
+    Contour tri = contour(
+        vec2d(0.0, 0.0),
+        vec2d(10.0, 0.0),
+        vec2d(0.0, 10.0)
+    );
+
+    assert(approxEqual(tri.exteriorAngles[0], 1.5*PI));
+    assert(approxEqual(tri.exteriorAngles[1], 1.75*PI));
+    assert(approxEqual(tri.exteriorAngles[2], 1.75*PI));
 }

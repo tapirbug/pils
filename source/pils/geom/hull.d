@@ -2,11 +2,12 @@ module pils.geom.hull;
 
 public
 {
-    import pils.geom.typecons;
+    import pils.geom.types;
 }
 
 private
 {
+    import pils.geom.cons;
     import pils.geom.segments;
     import pils.geom.util;
     import pils.geom.angles;

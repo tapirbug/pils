@@ -1,13 +1,15 @@
-module pils.layout;
+module pils.habitat.layout;
+
+public
+{
+    import pils.entity;
+}
 
 private
 {
+    import pils.geom.types;
     import std.algorithm.searching : canFind;
-    import std.algorithm.iteration : map, filter, reduce, joiner;
-    import std.range : chain;
-    import pils.entity;
-    import pils.feature;
-    import pils.geom.typecons;
+    import std.algorithm.iteration : map, filter, joiner;
     import painlessjson;
 }
 

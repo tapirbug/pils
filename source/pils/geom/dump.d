@@ -2,8 +2,7 @@ module pils.geom.dump;
 
 public
 {
-    import pils.geom.typecons;
-    import pils.geom.pose;
+    import pils.geom.types;
 }
 
 private
@@ -12,10 +11,10 @@ private
     import std.path : chainPath, absolutePath;
     import std.string : format;
     import std.algorithm.iteration;
-    import std.range : iota, chunks, chain;
+    import std.range : iota, chunks, chain, array;
     import std.datetime : Clock;
     import std.conv : to;
-
+    import pils.geom.transform;
     import pils.geom.tesselate;
 }
 
