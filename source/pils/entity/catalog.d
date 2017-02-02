@@ -146,8 +146,6 @@ Blueprint[] loadCatalog(string catalogSymbol)
             pathExecutable
         ].map!(p => buildPath(p, catalogSymbol));
 
-        import std.stdio; writeln(candiatePaths);
-
         auto searchResult = candiatePaths.find!isPrototypeLibrary();
         return searchResult.empty ? null : searchResult.front;
     }
