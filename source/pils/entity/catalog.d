@@ -1,7 +1,5 @@
 module pils.entity.catalog;
 
-enum ENTITY_LIBRARY_PATH_GLOBAL = "/etc/lager/classlibs";
-
 public
 {
     import pils.geom.typecons;
@@ -23,40 +21,44 @@ private
     import pils.geom.pose;
 }
 
-class EntityLibrary
+class Catalog
 {
 public:
-    EntityPrototype[] protoypes;
+    Blueprint[] entries;
 
-    EntityPrototype findByID(string id)
+    Blueprint findByID(string id)
     {
-        auto result = protoypes.find!((p) => p.meta.id == id)();
+        auto result = entries.find!((p) => p.meta.id == id)();
         return result.empty ? null : result.front;
     }
 
-    this(string libId)
+    /++
+     + Constructs a new catalog from the given catalog symbol. The symbol may be
+     + either the name of a global catalog in
+     +/
+    this(string catalogSymbol)
     {
-        protoypes = loadEntityLibrary(libId);
+        entries = loadCatalog(catalogSymbol);
     }
 }
 
 unittest
 {
     // a relative path should not throw
-    auto lib = new EntityLibrary("examples/classlibs/krachzack");
+    auto lib = new Catalog("examples/classlibs/krachzack");
 }
 
 private:
 
-EntityPrototype[] loadEntityLibrary(string libId)
+Blueprint[] loadCatalog(string catalogSymbol)
 {
     /++
-     + Checks if the given directory can be converted to an entityprotoype.
+     + Checks if the given directory can be converted to a blueprint.
      +
      + This can be done when a json file with the same name as the directory is
      + contained.
      +/
-    bool isProtoypeDir(string dir)
+    bool isBlueprintDir(string dir)
     {
         if(!exists(dir) || !isDir(dir))
         {
@@ -72,48 +74,84 @@ EntityPrototype[] loadEntityLibrary(string libId)
     }
 
     /++
-     + Checks if a directory contains at least one protoype directory.
+     + Checks if a directory contains at least one blueprint directory.
      +/
     bool isPrototypeLibrary(string dir)
     {
-        return exists(dir) && isDir(dir) && dir.dirEntries(SpanMode.shallow).any!isProtoypeDir();
+        return exists(dir) && isDir(dir) && dir.dirEntries(SpanMode.shallow).any!isBlueprintDir();
     }
 
-    EntityPrototype dirToPrototype(string dir)
+    Blueprint dirToPrototype(string dir)
     {
         auto dirname = baseName(dir);
         string dataFilePath = chainPath(dir, dirname ~ ".json").array;
 
-        EntityPrototype proto = dataFilePath.readText()
+        Blueprint blueprint = dataFilePath.readText()
                                             .parseJSON()
-                                            .fromJSON!EntityPrototype();
+                                            .fromJSON!Blueprint();
 
 
-        foreach(ref pl; proto.placements)
+        foreach(ref pl; blueprint.placements)
         {
             pl.mesh = chainPath(dir, pl.mesh).array.absolutePath();
         }
 
-        return proto;
+        return blueprint;
+    }
+
+    /++
+     + Gets the current users home directory on posix-like systems and C:/ on
+     + windows.
+     +/
+    string home()
+    {
+        version(Windows)
+        {
+            // On Windows, we need to resolve an environment variable to obtain
+            // the homedirectory equivalent, sine expandTilde per documentation,
+            // does nothing on windows
+            import std.process : environment;
+
+            // Try to get USERPROFILE environment variable which should point
+            // to the home folder equivalent on windows.
+            auto profile = environment.get("USERPROFILE");
+
+            //  If that does not work, assume C:\ as the home directory
+            return (profile !is null) ? profile : "C:/";
+        }
+        else
+        {
+            // All other platforms probably support exapnding of tildes in pathnames
+            return expandTilde("~/.lager/catalogs");
+        }
     }
 
     /++
      + Returns an absolute path to the library denoted with the given id or null if
      + no such library was found.
      +/
-    string resolveEntityLibraryFilepath(string libId)
+    string resolveCatalogFilepath(string catalogSymbol)
     {
-        string[] candiatePaths = [
-            chainPath(getcwd(), libId).array,
-            chainPath(ENTITY_LIBRARY_PATH_GLOBAL, libId).array
-        ];
+        auto pathExecutable = buildNormalizedPath(dirName(thisExePath()), "../catalogs");
+        auto pathSystem = "/etc/lager/catalogs";
+        auto pathUser = buildPath(home(), ".config/lager/catalogs");
+        auto pathWorkingDir = getcwd();
+
+        // List of possible directories that might contain the catalog
+        // The first hit is preferred if multiple match
+        auto candiatePaths = [
+            pathWorkingDir,
+            pathUser,
+            pathSystem,
+            pathExecutable
+        ].map!(p => buildPath(p, catalogSymbol));
 
         auto searchResult = candiatePaths.find!isPrototypeLibrary();
         return searchResult.empty ? null : searchResult.front;
     }
 
-    auto libraryBasePath = resolveEntityLibraryFilepath(libId);
+    auto libraryBasePath = resolveCatalogFilepath(catalogSymbol);
     return libraryBasePath.dirEntries(SpanMode.shallow)
-                          .filter!isProtoypeDir()
+                          .filter!isBlueprintDir()
                           .map!dirToPrototype().array;
 }

@@ -27,10 +27,10 @@ class Planner
 {
 public:
     Solver solver;
-    EntityLibrary lib;
+    Catalog lib;
     Layout layout;
 
-    this(EntityLibrary lib)
+    this(Catalog lib)
     {
         layout = new Layout();
         solver = new Solver(layout);
@@ -38,8 +38,9 @@ public:
     }
 
     /++
-     + Instantiates a new entity constructed off the entity prototype stored in
-     + the entity under the given id. The new entity will be placed at position.
+     + Instantiates a new entity constructed off the blueprint stored in
+     + the catalog under the given id. The new entity will be placed at the
+     + specified position.
      +
      + Note that no checks whatsoever are performed to ensure the placement is
      + valid. This should only be used for purposely unchecked placements, e.g.
@@ -48,28 +49,28 @@ public:
      +/
     void instantiate(string id, vec3d position)
     {
-        auto proto = lib.findByID(id);
+        auto blueprint = lib.findByID(id);
 
-        enforce(proto !is null, "Cannot instantiate id " ~ id ~ " because it could not be found");
+        enforce(blueprint !is null, "Cannot instantiate id " ~ id ~ " because it could not be found");
 
-        layout ~= proto.instantiate(position);
+        layout ~= blueprint.build(position);
     }
 
     /++
-     + Places a new instance of the entity protoype stored in the library under
+     + Places a new instance of the blueprint stored in the catalog under
      + the given ID in the current layout. The algorithm will find a suitable
      + location for the object. If no space is available for a new instance, the
      + call will silently fail and not add anything.
      +/
     void place(string id, string groundTag, size_t count=1)
     {
-        auto proto = lib.findByID(id);
+        auto blueprint = lib.findByID(id);
 
-        enforce(proto !is null, "Cannot place id " ~ id ~ " because it could not be found");
+        enforce(blueprint !is null, "Cannot place id " ~ id ~ " because it could not be found");
 
         foreach(i; 0..count)
         {
-            solver.place(proto, groundTag);
+            solver.place(blueprint, groundTag);
         }
     }
 }

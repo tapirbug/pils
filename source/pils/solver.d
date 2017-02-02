@@ -56,7 +56,7 @@ class Solver
         return f1.tags.canFind("OffLimits") && f2.tags.canFind("OffLimits");
     }
 
-    void place(EntityPrototype proto, string groundTag)
+    void place(Blueprint blueprint, string groundTag)
     {
         auto groundFeatures = layout.findFeaturesByTag(groundTag);
 
@@ -69,7 +69,7 @@ class Solver
 
         possibleLocations = transformPoly(possibleLocations, possibleLocationsPose);
 
-        foreach(protoFeature; proto.features)
+        foreach(protoFeature; blueprint.features)
         {
             foreach(layoutEnt; layout.entities)
             {
@@ -111,7 +111,7 @@ class Solver
 
             auto anyTriangleCenter = (anyTriangle.a + anyTriangle.b + anyTriangle.c) / 3;
 
-            auto ent = proto.instantiate(vec3d(anyTriangleCenter.x, possibleLocationsPose.position.z, anyTriangleCenter.y), possibleLocationsPose.orientation);
+            auto ent = blueprint.build(vec3d(anyTriangleCenter.x, possibleLocationsPose.position.z, anyTriangleCenter.y), possibleLocationsPose.orientation);
             layout ~= ent;
         }
 
@@ -121,7 +121,7 @@ class Solver
         {
             vec2d somePoint = strips[0][uniform(0, strips[0].length)];
 
-            auto ent = proto.instantiate(vec3d(somePoint.x, 0.0, somePoint.y));
+            auto ent = blueprint.build(vec3d(somePoint.x, 0.0, somePoint.y));
             layout ~= ent;
         }*/
     }
