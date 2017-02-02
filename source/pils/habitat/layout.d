@@ -1,4 +1,4 @@
-module pils.layout;
+module pils.habitat.layout;
 
 public
 {

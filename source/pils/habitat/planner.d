@@ -1,9 +1,9 @@
-module pils.planner;
+module pils.habitat.planner;
 
 public
 {
-    import pils.layout;
-    import pils.solver;
+    import pils.habitat.layout;
+    import pils.habitat.solver;
     import pils.entity;
 }
 

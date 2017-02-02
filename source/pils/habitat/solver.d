@@ -1,8 +1,13 @@
-module pils.solver;
+module pils.habitat.solver;
+
+public
+{
+    import pils.habitat.layout;
+    import pils.geom.types;
+}
 
 private
 {
-    import pils.layout;
     import pils.geom.sets;
     import pils.geom.tesselate;
     import pils.geom.dump;
