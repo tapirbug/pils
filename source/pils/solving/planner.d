@@ -178,35 +178,39 @@ struct PlanningStep
 
     unittest
     {
-        string placement = q{{
-            "do": "place",
-            "with": {
-                "id": "dustsucker.couch",
-                "count": 3,
-                "habitat": {
-                    "tag": "Ground"
-                },
-                "constraints": [
-                    {
-                        "constrain": "rotation",
-                        "with": {
-                            "randomize": "y",
-                            "discrete": 8
-                        }
-                    },
-                    {
-                        "constrain": "proximity",
-                        "with": {
-                            "tag": "Wall",
-                            "min": 0,
-                            "max": 0.1
-                        }
+        string placement = q{
+            [
+                {
+                    "do": "place",
+                    "with": {
+                        "id": "dustsucker.couch",
+                        "count": 3,
+                        "habitat": {
+                            "tag": "Ground"
+                        },
+                        "constraints": [
+                            {
+                                "constrain": "rotation",
+                                "with": {
+                                    "randomize": "y",
+                                    "discrete": 8
+                                }
+                            },
+                            {
+                                "constrain": "proximity",
+                                "with": {
+                                    "tag": "Wall",
+                                    "min": 0,
+                                    "max": 0.1
+                                }
+                            }
+                        ]
                     }
-                ]
-            }
-        }};
+                }
+            ]
+        };
 
-        PlanningStep placementStep = fromJSON!PlanningStep(parseJSON(placement));
+        PlanningStep placementStep = fromJSON!(PlanningStep[])(parseJSON(placement))[0];
         assert(placementStep.cmd == "place");
         assert(placementStep.params.id == "dustsucker.couch");
         assert(placementStep.params.count == 3);
