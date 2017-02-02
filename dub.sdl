@@ -5,9 +5,21 @@ homepage "https://github.com/krachzack/pils"
 license "MIT"
 dependency "gfm:math" version="~>6.2"
 dependency "painlessjson" version="~>1.3.7"
-targetType "library"
 targetPath "build"
 
 # Before compiling, ensure gpc clipper is compiled, and add the object file as additional source file
 preGenerateCommands "mkdir -p $PACKAGE_DIR/.linkwith && gcc -c -Wall $PACKAGE_DIR/dependencies/gpc232-release/gpc.c -o $PACKAGE_DIR/.linkwith/gpc.o"
 sourceFiles "$PACKAGE_DIR/.linkwith/gpc.o"
+
+buildType "debug" {
+	buildOptions "debugMode" "debugInfo" "alwaysStackFrame"
+}
+
+configuration "library" {
+	targetType "library"
+}
+
+configuration "unittest" {
+	targetType "executable"
+	mainSourceFile "source/test/test.d"
+}
