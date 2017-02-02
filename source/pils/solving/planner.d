@@ -10,19 +10,22 @@ public
 private
 {
     import std.exception : enforce;
+    import painlessjson;
+    import std.json;
+    import std.conv : to;
+    import std.typecons : Nullable;
+    import std.algorithm.iteration;
+    import std.array : array;
 }
 
 /++
- + Submits objects to the solver, which in turn places them one by one.
- + The Planner provides some higher level control, e.g. place 12 desks or
- + add wardrobes until there is 3 cubic meters of space for clothes.
+ + Submits objects to the solver to perform high-level placement logic over the
+ + more lower-level Solver.
  +
- + The Planner works by executing a number of rules in order.
+ + The Planner provides more abstract control, e.g. place 12 desks, add
+ + wardrobes until there is 3 cubic meters of space for clothes or add as much
+ + tables as possible.
  +/
- // place X instances of class Y
- // place as many objects of class Z as possible
- // keep adding cupboards until the total amount of storage space exceeds 1.3 cubic meters
- // if context is “dinner” place 5 plates on a table in front of a chair and stack 10 plates in storage features, else stack 15 plates in storage features
 class Planner
 {
 public:
@@ -72,5 +75,142 @@ public:
         {
             solver.place(blueprint, groundTag);
         }
+    }
+}
+
+struct PlanningStep
+{
+    struct Params {
+        Nullable!string id;
+        Nullable!vec3d position;
+        Nullable!size_t count;
+        string[] habitatTags;
+    }
+
+    string cmd;
+    Params params;
+
+    static PlanningStep _fromJSON(JSONValue stepJson)
+    {
+        double doublify(const(JSONValue) v)
+        {
+            if(v.type() == JSON_TYPE.INTEGER)
+            {
+                return cast(double) v.integer;
+            }
+            else if(v.type() == JSON_TYPE.FLOAT)
+            {
+                return cast(double) v.floating;
+            }
+
+            return double.nan;
+        }
+
+        string cmdFromJson()
+        {
+            const(JSONValue)* cmdJson = "do" in stepJson;
+            enforce(cmdJson, "No command (\"do\":) in planning step");
+            enforce(cmdJson.type() == JSON_TYPE.STRING, "Command is not a string");
+            return cmdJson.str;
+        }
+
+        Params paramsFromJson()
+        {
+            Params params;
+
+            const(JSONValue)* paramJson = "with" in stepJson;
+            enforce(paramJson, "No parameters (\"with\":) in planning step");
+            enforce(paramJson.type() == JSON_TYPE.OBJECT, "\"with\": can only contain an object");
+
+            const(JSONValue)* idJson = "id" in *paramJson;
+            if(idJson)
+            {
+                enforce(idJson.type() == JSON_TYPE.STRING, "ID is not a string");
+                params.id = idJson.str;
+            }
+
+            const(JSONValue)* positionJson = "position" in *paramJson;
+            if(positionJson)
+            {
+                enforce(positionJson.type == JSON_TYPE.ARRAY, "Position is not an array");
+                auto vals = positionJson.array;
+                enforce(vals.length == 3, "Position does not have three components");
+                double[] arr = vals.map!doublify().array;
+
+                params.position = vec3d(arr[0], arr[1], arr[2]);
+            }
+
+            const(JSONValue)* countJson = "count" in *paramJson;
+            if(countJson)
+            {
+                enforce(countJson.type() == JSON_TYPE.INTEGER ||
+                        countJson.type() == JSON_TYPE.UINTEGER);
+
+                params.count = countJson.integer;
+            }
+
+            const(JSONValue)* habitatJson = "habitat" in *paramJson;
+            if(habitatJson)
+            {
+                enforce(habitatJson.type() == JSON_TYPE.OBJECT, "\"habitat\": can only contain an object");
+
+                const(JSONValue)* habitatTagJson = "tag" in *habitatJson;
+                if(habitatTagJson)
+                {
+                    params.habitatTags ~= habitatTagJson.str;
+                }
+            }
+
+            return params;
+        }
+
+        return PlanningStep(cmdFromJson(), paramsFromJson());
+    }
+
+    unittest
+    {
+        string instantiation = q{{ "do": "instantiate", "with": { "id": "dustsucker.room", "position": [1, 2, 3] } }};
+        PlanningStep instantiationStep = fromJSON!PlanningStep(parseJSON(instantiation));
+        assert(instantiationStep.cmd == "instantiate");
+        assert(instantiationStep.params.id == "dustsucker.room");
+        assert(instantiationStep.params.position == vec3d(1.0, 2.0, 3.0));
+    }
+
+    unittest
+    {
+        string placement = q{{
+            "do": "place",
+            "with": {
+                "id": "dustsucker.couch",
+                "count": 3,
+                "habitat": {
+                    "tag": "Ground"
+                },
+                "constraints": [
+                    {
+                        "constrain": "rotation",
+                        "with": {
+                            "randomize": "y",
+                            "discrete": 8
+                        }
+                    },
+                    {
+                        "constrain": "proximity",
+                        "with": {
+                            "tag": "Wall",
+                            "min": 0,
+                            "max": 0.1
+                        }
+                    }
+                ]
+            }
+        }};
+
+        PlanningStep placementStep = fromJSON!PlanningStep(parseJSON(placement));
+        assert(placementStep.cmd == "place");
+        assert(placementStep.params.id == "dustsucker.couch");
+        assert(placementStep.params.count == 3);
+        assert(placementStep.params.habitatTags == ["Ground"]);
+        // TODO constraints
     }
 }

@@ -107,6 +107,7 @@ struct TriangleStrip
 unittest
 {
     import std.array;
+    import pils.geom.cons;
 
     auto quad = polygon(
         vec2d(0.0, 0.0),

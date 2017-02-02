@@ -414,6 +414,7 @@ unittest
 
 unittest
 {
+    import pils.geom.cons;
     Contour triangle = contour(vec2d(-1.0, -1.0), vec2d(1.0, -1.0), vec2d(0.0, 1.0));
     seg2d[] edges;
 
@@ -443,6 +444,8 @@ unittest
 
 unittest
 {
+    import pils.geom.cons;
+    import std.typecons : tuple;
     Contour triangle = contour(vec2d(-1.0, -1.0), vec2d(1.0, -1.0), vec2d(0.0, 1.0));
 
     assert(tuple(
