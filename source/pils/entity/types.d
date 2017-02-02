@@ -8,10 +8,14 @@ module pils.entity.types;
 
 public
 {
-    import pils.geom.typecons;
-    import pils.geom.util : contour;
-    import pils.entity.feature;
+    import pils.geom.types;
+    import pils.geom.cons;
     import painlessjson;
+}
+
+private
+{
+    import std.array : array;
 }
 
 class Entity
@@ -22,7 +26,12 @@ public:
     Feature[] features;
     Pose pose;
 
-    this(EntityMeta meta, EntityPlacement[] placements, Feature[] features, vec3d position, vec3d scale, quatd orientation)
+    this(EntityMeta meta,
+         EntityPlacement[] placements,
+         Feature[] features,
+         vec3d position,
+         vec3d scale,
+         quatd orientation)
     {
         this.meta = meta;
         this.placements = placements;
@@ -77,6 +86,7 @@ struct Feature
     }
     @SerializedName("vertices")
     @property void polygonVertices(double[][][] polygonVertArr) {
+        import std.algorithm.iteration : map;
         auto contours = polygonVertArr.map!contour();
         polygon = Polygon(contours.array);
     }

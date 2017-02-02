@@ -2,7 +2,7 @@ module pils.entity.blueprint;
 
 public
 {
-    import pils.geom.typecons;
+    import pils.geom.types;
     import pils.entity.types;
 }
 

@@ -7,7 +7,7 @@ public
 
 private
 {
-    import pils.geom.typecons;
+    import pils.geom.types;
     import std.algorithm.searching : canFind;
     import std.algorithm.iteration : map, filter, joiner;
     import painlessjson;

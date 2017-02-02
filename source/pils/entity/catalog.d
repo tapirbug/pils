@@ -2,7 +2,7 @@ module pils.entity.catalog;
 
 public
 {
-    import pils.geom.typecons;
+    import pils.geom.types;
     import pils.entity.types;
     import pils.entity.blueprint;
 }
@@ -18,7 +18,7 @@ private
     import std.path;
     import std.json : parseJSON;
     import std.string : format;
-    import pils.geom.pose;
+    import pils.geom.types;
 }
 
 class Catalog
@@ -122,7 +122,7 @@ Blueprint[] loadCatalog(string catalogSymbol)
         else
         {
             // All other platforms probably support exapnding of tildes in pathnames
-            return expandTilde("~/.lager/catalogs");
+            return expandTilde("~");
         }
     }
 
@@ -145,6 +145,8 @@ Blueprint[] loadCatalog(string catalogSymbol)
             pathSystem,
             pathExecutable
         ].map!(p => buildPath(p, catalogSymbol));
+
+        import std.stdio; writeln(candiatePaths);
 
         auto searchResult = candiatePaths.find!isPrototypeLibrary();
         return searchResult.empty ? null : searchResult.front;

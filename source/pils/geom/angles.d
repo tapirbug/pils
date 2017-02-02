@@ -2,7 +2,7 @@ module pils.geom.angles;
 
 public
 {
-    import pils.geom.typecons;
+    import pils.geom.types;
 }
 
 private

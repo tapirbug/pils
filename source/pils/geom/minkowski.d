@@ -2,16 +2,18 @@ module pils.geom.minkowski;
 
 public
 {
-    import pils.geom.typecons;
+    import pils.geom.types;
 }
 
 private
 {
+    import pils.geom.cons;
     import pils.geom.util;
+    import pils.geom.segments;
     import pils.geom.sets;
     import pils.geom.hull;
     import std.range;
-    import std.algorithm.iteration : joiner, fold;
+    import std.algorithm.iteration : joiner, fold, map;
 }
 
 /++
@@ -118,7 +120,8 @@ body
 
 unittest
 {
-    import pils.geom.pose;
+    import pils.geom.types;
+    import pils.geom.cons;
     import pils.geom.dump;
     import std.algorithm.searching : canFind;
     import std.math : sgn;

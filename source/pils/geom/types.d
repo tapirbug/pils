@@ -1,4 +1,10 @@
-module pils.geom.typecons;
+/++
+ + Contains types shared by all geometry modules and users of the module and
+ + functionality to duplicate and compare the types.
+ +
+ + Also publicy imports for vectors, matrices, quaternions, and line segments.
+ +/
+module pils.geom.types;
 
 public
 {
@@ -6,12 +12,28 @@ public
     import gfm.math.quaternion;
     import gfm.math.matrix;
     import gfm.math.shapes; // Line segments, planes, etc.
-    import gfm.math.funcs : clamp, lerp, radians, degrees;
+}
+
+private
+{
     import std.algorithm.iteration : map;
     import std.algorithm.searching : canFind;
     import std.array : array;
     import std.range : cycle, take;
     import std.range.primitives;
+    import std.json;
+    import std.exception : enforce;
+    import painlessjson;
+}
+
+/++
+ + A polygon is a set of bounding contours of a domain.
+ +/
+struct Polygon
+{
+    Contour[] contours;
+
+    @property auto dup() { return Polygon(contours.map!((d) => d.dup)().array); }
 }
 
 /++
@@ -96,19 +118,67 @@ struct Contour
     @property auto dup() { return Contour(vertices.dup); }
 }
 
-/++
- + A polygon is a set of bounding contours of a domain.
- +/
-struct Polygon
+struct Pose
 {
-    Contour[] contours;
+    vec3d position = vec3d(0.0, 0.0, 0.0);
+    vec3d scale = vec3d(1.0, 1.0, 1.0);
+    quatd orientation = quatd.identity;
 
-    @property auto dup() { return Polygon(contours.map!((d) => d.dup)().array); }
-}
+    static Pose _fromJSON(JSONValue val)
+    {
+        double doublify(const(JSONValue) v)
+        {
+            if(v.type() == JSON_TYPE.INTEGER)
+            {
+                return cast(double) v.integer;
+            }
+            else if(v.type() == JSON_TYPE.FLOAT)
+            {
+                return cast(double) v.floating;
+            }
 
-struct Region
-{
-    Polygon[] polygons;
+            return double.nan;
+        }
 
-    @property auto dup() { return Region(polygons.map!((p) => p.dup)().array); }
+        Pose pose;
+
+        if (const(JSONValue)* valPosition = "position" in val)
+        {
+            auto vals = valPosition.array;
+            double[] arr = vals.map!doublify().array;
+            enforce(arr.length == 3);
+            pose.position = arr;
+        }
+
+        if (const(JSONValue)* valScale = "scale" in val)
+        {
+            auto vals = valScale.array;
+            double[] arr = vals.map!doublify().array;
+            enforce(arr.length == 3);
+            pose.scale = arr;
+        }
+
+        if (const(JSONValue)* valOrientation = "orientation" in val)
+        {
+            auto vals = valOrientation.array;
+            double[] arr = vals.map!doublify().array;
+            enforce(arr.length == 4);
+
+            pose.orientation.x = arr[0];
+            pose.orientation.y = arr[1];
+            pose.orientation.z = arr[2];
+            pose.orientation.w = arr[3];
+        }
+
+        return pose;
+    }
+
+    const JSONValue _toJSON()
+    {
+        JSONValue[string] json;
+        json["orientation"] = JSONValue(orientation.v.v);
+        json["position"] = JSONValue(position.v);
+        json["scale"] = JSONValue(scale.v);
+        return JSONValue(json);
+    }
 }
