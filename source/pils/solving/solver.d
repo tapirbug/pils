@@ -1,8 +1,8 @@
-module pils.habitat.solver;
+module pils.solving.solver;
 
 public
 {
-    import pils.habitat.layout;
+    import pils.solving.layout;
     import pils.geom.types;
 }
 
