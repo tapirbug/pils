@@ -21,5 +21,5 @@ configuration "library" {
 
 configuration "unittest" {
 	targetType "executable"
-	mainSourceFile "source/test/test.d"
+	mainSourceFile "source/pils/test.d"
 }
