@@ -9,7 +9,7 @@ public
 private
 {
     import pils.geom.util;
-    import deimos.gpc;
+    import bindings.gpc;
     import std.range;
     import std.algorithm.iteration : map, joiner;
 }
