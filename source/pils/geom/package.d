@@ -3,6 +3,7 @@ module pils.geom;
 public
 {
     import pils.geom.angles;
+    import pils.geom.basis;
     import pils.geom.cons;
     import pils.geom.dump;
     import pils.geom.hull;
