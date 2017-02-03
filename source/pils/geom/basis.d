@@ -38,7 +38,6 @@ unittest
     Pose pose;
     pose.position = vec3d(-10, 100, -1000);
     pose.scale = vec3d(10, 10, 10);
-    // Data from turning a by -90 at http://www.onlineconversion.com/quaternions.htm
     pose.orientation = quatd.fromAxis(vec3d(1,0,0), -PI/2).normalized;
 
     // X points to the right from the perspective of a camera at 0,0,0 (almost)
