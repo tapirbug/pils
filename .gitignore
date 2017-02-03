@@ -27,3 +27,5 @@ docs/
 
 # OS Index Files
 .DS_Store
+
+.linkwith
