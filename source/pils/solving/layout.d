@@ -8,8 +8,10 @@ public
 private
 {
     import pils.geom.types;
-    import std.algorithm.searching : canFind;
+    import std.algorithm.searching : any, canFind;
     import std.algorithm.iteration : map, filter, joiner;
+    import std.range.primitives : isForwardRange, ElementType;
+    import std.traits : isSomeString;
     import painlessjson;
 }
 
@@ -36,6 +38,11 @@ public:
     auto findFeaturesByTag(string tag)
     {
         return features.filter!((f) => f.tags.canFind(tag));
+    }
+
+    auto findFeaturesByTags(T)(T tagRange) if(isForwardRange!T && isSomeString!(ElementType!T))
+    {
+        return features.filter!((f) => tagRange.any!((tag) => f.tags.canFind(tag)));
     }
 
     void opOpAssign(string op)(Entity newEntity) if(op == "~")
