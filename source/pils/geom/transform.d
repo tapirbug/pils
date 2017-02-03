@@ -56,6 +56,22 @@ auto transform(Pose pose, vec3d vtx)
     return vtx;
 }
 
+unittest
+{
+    import std.math : PI;
+    import pils.geom.util : almostEqual;
+
+    Pose pose;
+    pose.position = vec3d(-10, 100, -1000);
+    pose.scale = vec3d(10, 10, 10);
+    // Data from turning a by -90 at http://www.onlineconversion.com/quaternions.htm
+    pose.orientation = quatd.fromAxis(vec3d(1,0,0), -PI/2).normalized;
+
+    assert(almostEqual(pose.transform(vec3d(0, 0, 1)), pose.position + vec3d(0, 10, 0)));
+    assert(almostEqual(pose.transform(vec3d(0, 1, 0)), pose.position + vec3d(0, 0, -10)));
+    assert(almostEqual(pose.transform(vec3d(1, 0, 0)), pose.position + vec3d(10, 0, 0)));
+}
+
 auto transform(Pose pose, vec2d vertex)
 {
     return pose.transform(vec3d(vertex, 0.0));
