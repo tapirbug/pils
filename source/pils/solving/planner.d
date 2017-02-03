@@ -66,6 +66,11 @@ public:
      + call will silently fail and not add anything.
      +/
     void place(string id, string groundTag, size_t count=1)
+    in
+    {
+        assert(count >= 0);
+    }
+    body
     {
         auto blueprint = lib.findByID(id);
 
