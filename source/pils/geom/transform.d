@@ -27,12 +27,32 @@ Vector!(T, 3u) transform(T)(Quaternion!T quat, Vector!(T, 3u) vec)
     return vec + q.w * t + cross(q.xyz, t);
 }
 
+unittest
+{
+    import std.math : PI;
+    import pils.geom.util : almostEqual;
+
+    quatd identity = quatd.identity;
+
+    assert(almostEqual(identity.transform(vec3d(1,0,0)), vec3d(1,0,0)),
+           "multiplying with identity quaternion should change nothing");
+
+    quatd x90 = quatd.fromAxis(vec3d(1, 0, 0), PI/2).normalized;
+    assert(almostEqual(x90.transform(vec3d(0,0,1)), vec3d(0,-1,0)),
+           "Rotating 90 degrees ccw around X axis should transform +Z to -Y");
+
+    assert(almostEqual(x90.transform(vec3d(0,1,0)), vec3d(0,0,1)),
+          "Rotating 90 degrees ccw around X axis should transform +Y to +Z");
+
+    assert(almostEqual(x90.transform(vec3d(1,0,0)), vec3d(1,0,0)),
+           "Rotating 90 degrees ccw around X axis should not change +X");
+}
+
 auto transform(Pose pose, vec3d vtx)
 {
     vtx = pose.orientation.transform(vtx);
     vtx *= pose.scale;
     vtx += pose.position;
-
     return vtx;
 }
 
