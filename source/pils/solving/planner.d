@@ -16,6 +16,7 @@ private
     import std.typecons : Nullable;
     import std.algorithm.iteration;
     import std.array : array;
+    import std.range.primitives;
 }
 
 /++
@@ -65,9 +66,10 @@ public:
      + location for the object. If no space is available for a new instance, the
      + call will silently fail and not add anything.
      +/
-    void place(string id, string groundTag, size_t count=1)
+    void place(string id, string[] groundTags, size_t count=1)
     in
     {
+        assert(groundTags.length >= 1);
         assert(count >= 0);
     }
     body
@@ -78,9 +80,77 @@ public:
 
         foreach(i; 0..count)
         {
-            solver.place(blueprint, groundTag);
+            solver.place(blueprint, groundTags);
         }
     }
+
+    /++
+     + Carries out the given planning step.
+     +
+     + If the contained command is null, does nothing.
+     +/
+    void submit(A...)(A steps) if(A.length >= 1)
+    {
+        foreach(step; steps)
+        {
+            alias S = typeof(step);
+
+            static if(is(S == PlanningStep))
+            {
+                auto params = step.params;
+
+                // If parameter is an actual planning step, do it
+                final switch(step.cmd)
+                {
+                    case PlanningCmd.none:
+                        break;
+
+                    case PlanningCmd.place:
+                        place(params.id.get(), params.habitatTags, params.count.get());
+                        break;
+
+                    case PlanningCmd.instantiate:
+                        instantiate(params.id.get(), params.position.get());
+                        break;
+                }
+            }
+            else static if(isInputRange!S && is(ElementType!S == PlanningStep))
+            {
+                // If is a range, recurse, effectively flattening the parameters
+                foreach(substep; step)
+                {
+                    submit(substep);
+                }
+            }
+            else
+            {
+                // If is neither a planning step, nor a range of planning steps,
+                // obviously there is a wrong parameter
+                static assert(false);
+            }
+        }
+    }
+
+    unittest
+    {
+        auto planner = new Planner(new Catalog("dustsucker"));
+
+        // Submitting nothing should fail instantiation
+        assert(! __traits( compiles, planner.submit() ));
+
+        assert(__traits( compiles, planner.submit(PlanningStep()) ),
+             "Submitting a single planning step should compile");
+
+        // These are nop commands, this should just not crash
+        planner.submit(PlanningStep(), [PlanningStep(), PlanningStep()]);
+    }
+}
+
+enum PlanningCmd
+{
+    none,
+    place,
+    instantiate
 }
 
 struct PlanningStep
@@ -92,7 +162,7 @@ struct PlanningStep
         string[] habitatTags;
     }
 
-    string cmd;
+    PlanningCmd cmd;
     Params params;
 
     static PlanningStep _fromJSON(JSONValue stepJson)
@@ -111,12 +181,21 @@ struct PlanningStep
             return double.nan;
         }
 
-        string cmdFromJson()
+        PlanningCmd cmdFromJson()
         {
             const(JSONValue)* cmdJson = "do" in stepJson;
             enforce(cmdJson, "No command (\"do\":) in planning step");
             enforce(cmdJson.type() == JSON_TYPE.STRING, "Command is not a string");
-            return cmdJson.str;
+
+            switch(cmdJson.str)
+            {
+            case "instantiate":
+                return PlanningCmd.instantiate;
+            case "place":
+                return PlanningCmd.place;
+            default:
+                throw new Exception("Unknown command " ~ cmdJson.str);
+            }
         }
 
         Params paramsFromJson()
@@ -176,7 +255,7 @@ struct PlanningStep
     {
         string instantiation = q{{ "do": "instantiate", "with": { "id": "dustsucker.room", "position": [1, 2, 3] } }};
         PlanningStep instantiationStep = fromJSON!PlanningStep(parseJSON(instantiation));
-        assert(instantiationStep.cmd == "instantiate");
+        assert(instantiationStep.cmd == PlanningCmd.instantiate);
         assert(instantiationStep.params.id == "dustsucker.room");
         assert(instantiationStep.params.position == vec3d(1.0, 2.0, 3.0));
     }
@@ -216,7 +295,7 @@ struct PlanningStep
         };
 
         PlanningStep placementStep = fromJSON!(PlanningStep[])(parseJSON(placement))[0];
-        assert(placementStep.cmd == "place");
+        assert(placementStep.cmd ==  PlanningCmd.place);
         assert(placementStep.params.id == "dustsucker.couch");
         assert(placementStep.params.count == 3);
         assert(placementStep.params.habitatTags == ["Ground"]);
