@@ -81,15 +81,10 @@ body
         // Then calculate the sum of the single ontour with a new contour formed
         // from each edge of the multiple contours
         auto edgewiseSums = manyEdges.map!(
-            e => minkowskiSum(contour([e.a, e.b]), oneContour)
-        )();
+            e => polygon([minkowskiSum(contour([e.a, e.b]), oneContour)])
+        )().fold!merge;
 
-        // Merge an original polygon consisting of the input contours with
-        // each of the edge wise minkowski sums with the other polygon
-        return fold!((Polygon p, Contour plusC) => merge(
-            p,
-            polygon([plusC])
-        ))(edgewiseSums, polygon(manyContours));
+        return merge(edgewiseSums, polygon(manyContours));
     }
 
     Polygon manyContoursPlusMany(Contour[] contours1, Contour[] contours2)

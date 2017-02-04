@@ -13,6 +13,7 @@ private
     import std.algorithm.iteration;
     import std.array : array;
     import std.range.primitives;
+    import std.math : PI;
 }
 
 /++
@@ -31,7 +32,6 @@ Vector!(T, 3u) transform(T)(Quaternion!T quat, Vector!(T, 3u) vec)
 
 unittest
 {
-    import std.math : PI;
     import pils.geom.util : almostEqual;
 
     quatd identity = quatd.identity;
@@ -65,12 +65,11 @@ auto untransform(Pose pose, vec3d vtx)
 {
     vtx -= pose.position;
     vtx /= pose.scale;
-    return pose.orientation.inversed.transform(vtx);
+    return pose.orientation.inversed.normalized.transform(vtx);
 }
 
 unittest
 {
-    import std.math : PI;
     import pils.geom.util : almostEqual;
 
     Pose pose;
@@ -173,7 +172,7 @@ Pose combine(P...)(P poses) if(poses.length >= 1 &&
             {
                 combined.position += pose.position;
                 combined.scale *= pose.scale;
-                combined.orientation = (combined.orientation * pose.orientation).normalized;
+                combined.orientation = (pose.orientation * combined.orientation).normalized;
             }
             else static if(isInputRange!T && is(ElementType!T == Pose))
             {
@@ -207,4 +206,24 @@ unittest
     Pose x270 = combine(x90, x90, x90);
     assert(almostEqual(x270.transform(vec3d(0,0,1)), vec3d(0,1,0)),
            "Rotating 270 degrees ccw around X axis should transform +Z to +Y");
+}
+
+/++
+ + Transforms the given vector from a OpenGL-like coordinate system with Y
+ + pointing upwards and z pointing forward to a blender world point with Z
+ + pointing upwards and Y pointing back.
+ +/
+@property vec3d blenderPoint(vec3d openGLSpacePoint)
+{
+     return quatd.fromAxis(vec3d(1, 0, 0), PI/2).normalized.transform(openGLSpacePoint);
+    //return vec3d(openGLSpacePoint.x, -openGLSpacePoint.z, openGLSpacePoint.y);
+}
+
+/++
+ + Flips the Z axis because that is the default setting in blender.
+ +/
+@property vec3d objPoint(vec3d openGLSpacePoint)
+{
+    openGLSpacePoint.z = -openGLSpacePoint.z;
+    return openGLSpacePoint;
 }

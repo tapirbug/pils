@@ -21,14 +21,14 @@ private
 string toOBJ(Polygon poly, Pose pose)
 {
     auto normal = pose.orientation.transform(vec3d(0.0, 0.0, 1.0));
-    string normalLine = format("vn %#s %#s %#s\n", normal.x, normal.y, -normal.z);
+    string normalLine = format("vn %#s %#s %#s\n", normal.x, normal.y, normal.z);
 
     // I need to array this so verts.length is available
     auto verts = poly.triangleVertices.map!(v => pose.transform(v))().array;
 
-    // Invert Z since that is the default setting in blender
-    alias makeVertexLine = vtx => format("v %#s %#s %#s\n", vtx.x, vtx.y, -vtx.z);
-    auto vertexLines = verts.map!makeVertexLine();
+    alias makeVertexLine = vtx => format("v %#s %#s %#s\n", vtx.x, vtx.y, vtx.z);
+    // Invert Z since that is the default setting in blender => map!objPoint()
+    auto vertexLines = verts.map!objPoint().map!makeVertexLine();
 
     // For poor OBJ, indexing starts at 1
     auto indexes = iota(1u, 1u+verts.length).map!(to!string)();
@@ -40,7 +40,7 @@ string toOBJ(Polygon poly, Pose pose)
 
 void dump(Polygon poly, Pose pose, string outDirectory, string basename)
 {
-    auto filename = format("%s %s.obj", basename, Clock.currTime());
+    auto filename = format("%s - %s.obj", Clock.currTime().toISOString(), basename);
     auto targetPath = chainPath(absolutePath(outDirectory), filename);
     string obj = poly.toOBJ(pose);
     targetPath.write(obj);

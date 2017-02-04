@@ -8,6 +8,7 @@ public
     import pils.geom.dump;
     import pils.geom.hull;
     import pils.geom.minkowski;
+    import pils.geom.random;
     import pils.geom.segments;
     import pils.geom.sets;
     import pils.geom.tesselate;

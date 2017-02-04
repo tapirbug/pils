@@ -17,7 +17,7 @@ public
 private
 {
     import std.algorithm.iteration : map;
-    import std.algorithm.searching : canFind;
+    import std.algorithm.searching : canFind, all;
     import std.array : array;
     import std.range : cycle, take;
     import std.range.primitives;
@@ -32,6 +32,8 @@ private
 struct Polygon
 {
     Contour[] contours;
+
+    @property bool empty() { return contours.empty || contours.all!(c => c.empty); }
 
     @property auto dup() { return Polygon(contours.map!((d) => d.dup)().array); }
 }
@@ -114,6 +116,8 @@ struct Contour
             [vec2d(0.0, 0.0), vec2d(1.0, 0.0), vec2d(1.0, 1.0), vec2d(0.0, 0.0)]
         );
     }
+
+    @property bool empty() { return vertices.empty; }
 
     @property auto dup() { return Contour(vertices.dup); }
 }
