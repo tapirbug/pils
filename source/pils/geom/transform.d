@@ -150,3 +150,61 @@ Polygon convert(Polygon poly, Pose sourcePose, Pose targetPose)
     auto worldPoly = sourcePose.transform(poly);
     return targetPose.untransform(worldPoly);
 }
+
+/++
+ + Constructs a new pose that applyies first and others in sequence.
+ +/
+Pose combine(P...)(P poses) if(poses.length >= 1 &&
+                                 (
+                                    isInputRange!(typeof(poses[0])) && is(ElementType!(typeof(poses[0])) == Pose))
+                                    || is(typeof(poses[0]) == Pose
+                                 )
+                              )
+{
+    Pose combined = poses[0];
+
+    static if(poses.length > 1)
+    {
+        foreach(pose; poses[1..$])
+        {
+            alias T = typeof(pose);
+
+            static if(is(T == Pose))
+            {
+                combined.position += pose.position;
+                combined.scale *= pose.scale;
+                combined.orientation = (combined.orientation * pose.orientation).normalized;
+            }
+            else static if(isInputRange!T && is(ElementType!T == Pose))
+            {
+                // For ranges, recurse and let the above clause handle it
+                foreach(Pose subPose; pose)
+                {
+                    combined = combine(combined, subPose);
+                }
+            }
+            else
+            {
+                static assert(false, "Transform chain should only contain poses or ranges of poses");
+            }
+        }
+    }
+
+    return combined;
+}
+
+unittest
+{
+    import std.math : PI;
+    import pils.geom.util : almostEqual;
+
+    Pose x90;
+    x90.orientation = quatd.fromAxis(vec3d(1, 0, 0), PI/2).normalized;
+
+    assert(almostEqual(x90.transform(vec3d(0,0,1)), vec3d(0,-1,0)),
+           "Rotating 90 degrees ccw around X axis should transform +Z to -Y");
+
+    Pose x270 = combine(x90, x90, x90);
+    assert(almostEqual(x270.transform(vec3d(0,0,1)), vec3d(0,1,0)),
+           "Rotating 270 degrees ccw around X axis should transform +Z to +Y");
+}
