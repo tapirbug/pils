@@ -66,10 +66,9 @@ public:
      + location for the object. If no space is available for a new instance, the
      + call will silently fail and not add anything.
      +/
-    void place(string id, string[] groundTags, size_t count=1)
+    void place(string id, string groundTag, size_t count=1)
     in
     {
-        assert(groundTags.length >= 1);
         assert(count >= 0);
     }
     body
@@ -80,7 +79,7 @@ public:
 
         foreach(i; 0..count)
         {
-            solver.place(blueprint, groundTags);
+            solver.place(blueprint, groundTag);
         }
     }
 
