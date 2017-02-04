@@ -88,7 +88,7 @@ struct Feature
     @property void polygonVertices(double[][][] polygonVertArr) {
         import std.algorithm.iteration : map;
         auto contours = polygonVertArr.map!contour();
-        polygon = Polygon(contours.array);
+        polygon = pils.geom.cons.polygon(contours);
     }
 
 }

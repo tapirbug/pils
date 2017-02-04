@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# The sh thing ensures the exit code is always 0 and error exit codes do not
+# kill nodemon
+nodemon --exec "sh -c 'dub test; :'" \
+        --ext "d,sdl,yaml,json" \
+        --watch "source" \
+        --watch "dub.sdl" \
+        --watch "test"
