@@ -93,12 +93,6 @@ class Solver
         {
             vec2d placementHabitatPoint = selectRandomLocation(habitat);
             vec3d worldPlacementPoint = layoutPose.transform(placementHabitatPoint);
-
-            version(none)
-            {
-                worldPlacementPoint = worldPlacementPoint.blenderPoint;
-            }
-
             layout ~= blueprint.build(worldPlacementPoint);
         }
     }
