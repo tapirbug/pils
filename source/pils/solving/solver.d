@@ -49,7 +49,7 @@ class Solver
         return f1.tags.canFind("OffLimits") && f2.tags.canFind("OffLimits");
     }
 
-    void place(H)(Blueprint blueprint, H habitatTagsRange) if(isForwardRange!H && isSomeString!(ElementType!H))
+    bool place(H)(Blueprint blueprint, H habitatTagsRange) if(isForwardRange!H && isSomeString!(ElementType!H))
     {
         enforceHabitatFeatureAssumptions(layout.findFeaturesByTags(habitatTagsRange), habitatTagsRange);
 
@@ -72,34 +72,28 @@ class Solver
         Polygon habitat = worldHabitatPolygons.map!(p => layoutPose.untransform(p))
                                               .fold!merge();
 
-        version(none)
-        {
-            habitat.dump(layoutPose, "debug", "available-world");
-        }
-
         // For now, OffLimits is incompatible to everything else and thats it
         // In the future, it should be based on some blueprint feature setting
         string[] incompatibleTags = [ "OffLimits" ];
         habitat = conserveOccuppiedHabitat(habitat, layoutPose, blueprint, incompatibleTags);
 
-        version(none)
-        {
-            habitat.dump(layoutPose, "debug", "available-free");
-        }
-
         // TODO recover original elevation from globalHabitat
 
-        if(habitat.contours.length > 0)
+        bool habitatAvailable = habitat.contours.length > 0;
+
+        if(habitatAvailable)
         {
             vec2d placementHabitatPoint = selectRandomLocation(habitat);
             vec3d worldPlacementPoint = layoutPose.transform(placementHabitatPoint);
             layout ~= blueprint.build(worldPlacementPoint);
         }
+
+        return habitatAvailable;
     }
 
-    void place(S)(Blueprint blueprint, S habitatTag) if(isSomeString!S)
+    bool place(S)(Blueprint blueprint, S habitatTag) if(isSomeString!S)
     {
-        place(blueprint, [ habitatTag ]);
+        return place(blueprint, [ habitatTag ]);
     }
 
 private:
@@ -147,84 +141,9 @@ private:
             p => minkowskiSum(p, requiredHabitat)
         );
 
-
         auto remainingHabitat = offsetOccuppiedHabitat.fold!difference(baseHabitat);
 
-        version(all)
-        {
-            foreach(h; offsetOccuppiedHabitat)
-            {
-                h.dump(layoutPose, "debug", "offsetOccuppiedHabitatPARRRRRRT");
-            }
-            requiredHabitat.dump(layoutPose, "debug", "requiredHabitat");
-            occuppiedHabitat.fold!merge.dump(layoutPose, "debug", "occuppiedHabitat");
-            offsetOccuppiedHabitat.fold!merge().dump(layoutPose, "debug", "offsetOccuppiedHabitat");
-            remainingHabitat.dump(layoutPose, "debug", "remainingHabitat");
-        }
-
         return remainingHabitat;
-
-        version(none)
-        {
-            version(all)
-            {
-                requiredHabitat.dump(layoutPose, "debug", "required-habitat");
-            }
-
-            auto occuppiedHabitatPolys = blueprint.features.map!((feature) {
-                // this should really be calculated per-feature, but is the same
-                // for each iteration right now, because everything is incompatible to OffLimits
-                auto incompatibleWithFeatureEnts = findEntities(incompatibleTags);
-                auto offsetIncompatibleWithFeaturePolys = incompatibleWithFeatureEnts.map!(
-                    (e) {
-                        Entity entity = e[0];
-                        auto incompatibleWithFeatureFeatures = e[1];
-
-                        auto incompatibleWithFeatureWorldPolys = incompatibleWithFeatureFeatures.map!(
-                            f => combine(entity.pose, f.pose).transform(f.polygon)
-                        );
-
-                        import std.stdio; stderr.writeln(entity.meta.name, "   ",incompatibleWithFeatureWorldPolys);
-
-                        auto incompatibleWithFeaturePolys = incompatibleWithFeatureWorldPolys.map!(
-                            w => layoutPose.untransform(w)
-                        );
-
-                        import std.stdio; stderr.writeln(entity.meta.name, "   ", incompatibleWithFeaturePolys, "\n\n");
-
-                        version(none)
-                        {
-                            incompatibleWithFeaturePolys.fold!merge().dump(layoutPose, "debug", "incompatible");
-                        }
-
-                        //return incompatibleWithFeaturePolys.fold!merge();
-                        auto offsetIncompatibleWithFeaturePolys = incompatibleWithFeaturePolys.map!(
-                            p => minkowskiSum(p, feature.polygon)
-                        );
-
-                        return offsetIncompatibleWithFeaturePolys.fold!merge();
-                    }
-                )();
-
-                version(none)
-                {
-                    foreach(incompatible; offsetIncompatibleWithFeaturePolys)
-                    {
-                        incompatible.dump(layoutPose, "debug", "incompatible-offset");
-                    }
-                }
-
-                return offsetIncompatibleWithFeaturePolys.fold!merge();
-            });
-
-            version(none)
-            {
-                auto occuppiedArea = occuppiedHabitatPolys.fold!merge;
-                occuppiedArea.dump(layoutPose, "debug", "incompatible-offset");
-            }
-
-            return habitat.difference(occuppiedHabitatPolys.fold!merge);
-        }
     }
 
     vec2d selectRandomLocation(Polygon poly)
