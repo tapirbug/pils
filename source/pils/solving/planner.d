@@ -86,7 +86,14 @@ public:
 
         foreach(i; 0..count)
         {
-            solver.place(blueprint, groundTags);
+            bool placed = solver.place(blueprint, groundTags);
+
+            // If there is no more space available, there is no use to try and
+            // add more of the same kind
+            if(!placed)
+            {
+                break;
+            }
         }
     }
 
@@ -112,7 +119,8 @@ public:
                         break;
 
                     case PlanningCmd.place:
-                        place(params.id.get(), params.habitatTags, params.count.get());
+                        size_t count = params.count.isNull ? 1 : params.count.get();
+                        place(params.id.get(), params.habitatTags, count);
                         break;
 
                     case PlanningCmd.instantiate:
