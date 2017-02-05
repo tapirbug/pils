@@ -17,6 +17,7 @@ private
     import std.algorithm.iteration;
     import std.array : array;
     import std.range.primitives;
+    import std.traits : isSomeString;
 }
 
 /++
@@ -65,8 +66,13 @@ public:
      + the given ID in the current layout. The algorithm will find a suitable
      + location for the object. If no space is available for a new instance, the
      + call will silently fail and not add anything.
+     +
+     + Params:
+     +          id = Catalog ID of the blueprint to place, e.g. krachzack.tv
+     +          groundTags = Single tag string or range of tag strings where the object can be placed on
+     +          count = How many objects of the same type to create
      +/
-    void place(string id, string groundTag, size_t count=1)
+    void place(S)(string id, S groundTags, size_t count=1) if(isSomeString!S || isForwardRange!S && isSomeString!(ElementType!S))
     in
     {
         assert(count >= 0);
@@ -76,10 +82,11 @@ public:
         auto blueprint = lib.findByID(id);
 
         enforce(blueprint !is null, "Cannot place id " ~ id ~ " because it could not be found");
+        enforce(count >= 0);
 
         foreach(i; 0..count)
         {
-            solver.place(blueprint, groundTag);
+            solver.place(blueprint, groundTags);
         }
     }
 
